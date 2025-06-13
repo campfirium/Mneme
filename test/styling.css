@@ -13,7 +13,7 @@
   --text-secondary: #666666;
   --divider-color: #f0f0f0;
   --box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1.5px 6px rgba(0,0,0,0.08);
-  --page-bg: #f7f7f9;
+  /* --page-bg: #f7f7f9; */
 }
 
 /* 当Anki处于深色模式时，重写变量 */
@@ -23,7 +23,18 @@
   --text-secondary: #b0b0b0;
   --divider-color: #404040;
   --box-shadow: 0 4px 24px rgba(0,0,0,0.18);
-  --page-bg: #1a1a1a;
+  /* --page-bg: #1a1a1a; */
+}
+
+@media (max-width: 600px) {
+  .night_mode, .card.night_mode {
+    --box-bg: #2d2d2d;
+    --text-primary: #f0f0f0;
+    --text-secondary: #c0c0c0;
+    --divider-color: #707070;
+    --box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    /* --page-bg: #1a1a1a; */
+  }
 }
 
 /* --- 基础布局 --- */
@@ -176,7 +187,6 @@ body {
 
   .divider{
    width: calc(100vw - 128px) !important; /* 48px = 左右各24px */
-background-color: #707070;
   }
 }
 
