@@ -16,6 +16,12 @@
   /* --page-bg: #f7f7f9; */
 }
 
+.word { font-size: 48px; }
+.phonetic { font-size: 32px; }
+.example { font-size: 22px; }
+.definition { font-size: 18px; }
+
+
 /* 当Anki处于深色模式时，重写变量 */
 .night_mode, .card.night_mode {
   --box-bg: #2d2d2d;
@@ -35,6 +41,11 @@
     --box-shadow: 0 4px 24px rgba(0,0,0,0.18);
     /* --page-bg: #1a1a1a; */
   }
+    /* 4. 调整字体大小以适应移动端屏幕 */
+    .word { font-size: 10vw; }
+    .phonetic { font-size: 9vw; }
+    .example { font-size: 6vw; }
+    .definition { font-size: 5vw; }
 }
 
 /* --- 基础布局 --- */
@@ -70,7 +81,6 @@ body {
 
 .word {
   color: var(--text-primary);
-  font-size: 48px;
   font-weight: bold;
   margin-bottom: 12px;
   line-height: 1.2;
@@ -80,7 +90,6 @@ body {
 .phonetic {
   color: var(--text-secondary);
   font-family: 'Charis SIL Local', sans-serif;
-  font-size: 32px;
   margin-bottom: 6px;
   font-weight: 400;
   transition: color 0.3s ease;
@@ -105,7 +114,6 @@ body {
 
 .example {
   color: var(--text-primary);
-  font-size: 22px;
   margin-bottom: 16px;
   line-height: 1.6;
   transition: color 0.3s ease;
@@ -113,7 +121,6 @@ body {
 
 .definition {
   color: var(--text-secondary);
-  font-size: 18px;
   line-height: 1.5;
   margin-bottom: 0;
   transition: color 0.3s ease;
@@ -170,11 +177,7 @@ body {
     padding: 0; /* 移除自身的内边距 */
   }
 
-  /* 4. 调整字体大小以适应移动端屏幕 */
-  .word { font-size: 10vw; }
-  .phonetic { font-size: 9vw; }
-  .example { font-size: 6vw; }
-  .definition { font-size: 5vw; }
+
 
   /* 5. 调整图片样式 */
   .image-container {
@@ -186,7 +189,7 @@ body {
   }
 
   .divider{
-   width: calc(100vw - 128px) !important; /* 48px = 左右各24px */
+   width: calc(100vw - 128px) !important; 
   }
 }
 
