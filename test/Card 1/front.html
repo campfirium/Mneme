@@ -4,6 +4,7 @@
     <div class="phonetic transparent">{{IPA}}</div>
     <hr class="divider">
   </div>
+
 </div>
 
 <script>
@@ -45,3 +46,16 @@ observer.observe(document.body, {
 // 初始化主题
 syncAnkiTheme();
 </script>
+
+<script>
+  // 只有真机需要；PC 浏览器已经自己有 meta 了
+  (function () {
+    // 1. 如果已经存在则不重复插入
+    if (document.querySelector('meta[name="viewport"]')) return;
+  
+    const meta = document.createElement('meta');
+    meta.name    = 'viewport';
+    meta.content = 'width=device-width,initial-scale=1,maximum-scale=1';
+    document.head.appendChild(meta);
+  })();
+  </script>

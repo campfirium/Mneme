@@ -1,6 +1,7 @@
 @font-face {
   font-family: 'Charis SIL Local';
   src: url('_charis_sil_regular.ttf');
+  font-display: swap;
 }
 
 
@@ -171,6 +172,11 @@ body {
   }
   .image-container img {
     border-radius: 8px;
+  }
+
+  .divider{
+   width: calc(100vw - 128px) !important; /* 48px = 左右各24px */
+background-color: #707070;
   }
 }
 
