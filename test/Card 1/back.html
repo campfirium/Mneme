@@ -1,10 +1,8 @@
-<!-- 翻译控制变量
-     默认不显示翻译
-     要显示翻译，请在下面的 box 中添加 class="show-translation"
-     即：<div class="box show-translation">
+<!-- 翻译设置 (只需要修改下面这个数字)
+     0 = 不显示翻译
+     1 = 显示中文翻译
 -->
-
-<div class="box">
+<div class="box translation-mode-0">
   <div class="top-fixed">
     <div class="word">{{Word}}&#8203;</div>
     <div class="phonetic">{{IPA}}</div>
@@ -14,14 +12,14 @@
   <div class="middle-content">
     <div class="example">
       <div class="static-text">{{Example}}</div>
-      <details>
+      <details class="translation-zh">
         <summary>{{Example}}</summary>
         <div class="translation">{{ExampleZH}}</div>
       </details>
     </div>
     <div class="definition">
       <div class="static-text">{{Meaning}}</div>
-      <details>
+      <details class="translation-zh">
         <summary>{{Meaning}}</summary>
         <div class="translation">{{MeaningZH}}</div>
       </details>

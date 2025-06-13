@@ -126,22 +126,30 @@ body {
   transition: color 0.3s ease;
 }
 
-/* 添加翻译折叠样式 */
+/* 翻译控制系统 */
 details {
   margin-top: 8px;
-  display: none; /* 默认隐藏翻译功能 */
+  display: none; /* 默认隐藏所有翻译 */
 }
 
 .static-text {
   display: block; /* 默认显示静态文本 */
 }
 
-.show-translation details {
-  display: block; /* 显示翻译功能 */
+/* 模式 0: 不显示翻译 (默认) */
+.translation-mode-0 .static-text {
+  display: block;
+}
+.translation-mode-0 details {
+  display: none;
 }
 
-.show-translation .static-text {
-  display: none; /* 隐藏静态文本 */
+/* 模式 1: 显示中文翻译 */
+.translation-mode-1 .static-text {
+  display: none;
+}
+.translation-mode-1 .translation-zh {
+  display: block;
 }
 
 details summary {
