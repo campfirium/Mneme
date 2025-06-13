@@ -128,7 +128,6 @@ body {
 
 /* 翻译控制系统 */
 details {
-  margin-top: 8px;
   display: none; /* 默认隐藏所有翻译 */
 }
 
