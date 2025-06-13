@@ -1,3 +1,9 @@
+<!-- 翻译控制变量
+     默认不显示翻译
+     要显示翻译，请在下面的 box 中添加 class="show-translation"
+     即：<div class="box show-translation">
+-->
+
 <div class="box">
   <div class="top-fixed">
     <div class="word">{{Word}}&#8203;</div>
@@ -7,12 +13,14 @@
 
   <div class="middle-content">
     <div class="example">
+      <div class="static-text">{{Example}}</div>
       <details>
         <summary>{{Example}}</summary>
         <div class="translation">{{ExampleZH}}</div>
       </details>
     </div>
     <div class="definition">
+      <div class="static-text">{{Meaning}}</div>
       <details>
         <summary>{{Meaning}}</summary>
         <div class="translation">{{MeaningZH}}</div>
