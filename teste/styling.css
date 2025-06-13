@@ -128,6 +128,13 @@ body {
 
 /* === 移动端响应式样式 (无边框全屏模式) === */
 @media (max-width: 600px) {
+  body {
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
   /* 1. 让 body 成为内容容器 */
   body {
     display: flex;

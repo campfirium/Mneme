@@ -10,7 +10,7 @@
   --box-bg: #fff;
   --text-primary: #333333;
   --text-secondary: #666666;
-  --divider-color: #e0e0e0;
+  --divider-color: #f0f0f0;
   --box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1.5px 6px rgba(0,0,0,0.08);
   --page-bg: #f7f7f9;
 }
@@ -93,7 +93,7 @@ body {
 
 .example {
   color: var(--text-primary);
-  font-size: 24px;
+  font-size: 22px;
   margin-bottom: 16px;
   line-height: 1.6;
   transition: color 0.3s ease;
@@ -101,7 +101,7 @@ body {
 
 .definition {
   color: var(--text-secondary);
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.5;
   margin-bottom: 0;
   transition: color 0.3s ease;
@@ -109,7 +109,7 @@ body {
 
 .image-container {
   flex: 1;
-  margin-top: 20px;
+  margin-top: 30px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -128,6 +128,13 @@ body {
 
 /* === 移动端响应式样式 (无边框全屏模式) === */
 @media (max-width: 600px) {
+  body {
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
   /* 1. 让 body 成为内容容器 */
   body {
     display: flex;
@@ -152,10 +159,10 @@ body {
   }
 
   /* 4. 调整字体大小以适应移动端屏幕 */
-  .word { font-size: 9vw; }
-  .phonetic { font-size: 6vw; }
-  .example { font-size: 5vw; }
-  .definition { font-size: 4.5vw; }
+  .word { font-size: 10vw; }
+  .phonetic { font-size: 9vw; }
+  .example { font-size: 6vw; }
+  .definition { font-size: 5vw; }
 
   /* 5. 调整图片样式 */
   .image-container {
@@ -166,3 +173,5 @@ body {
     border-radius: 8px;
   }
 }
+
+.sound {height:0px !important;opacity:0}
