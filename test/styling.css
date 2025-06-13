@@ -1,0 +1,168 @@
+@font-face {
+  font-family: 'Charis SIL Local';
+  src: url('_charis_sil_regular.ttf');
+}
+
+
+/* --- 主题变量定义 --- */
+:root {
+  /* 浅色主题 (默认) */
+  --box-bg: #fff;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --divider-color: #e0e0e0;
+  --box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1.5px 6px rgba(0,0,0,0.08);
+  --page-bg: #f7f7f9;
+}
+
+/* 当Anki处于深色模式时，重写变量 */
+.night_mode, .card.night_mode {
+  --box-bg: #2d2d2d;
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0;
+  --divider-color: #404040;
+  --box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  --page-bg: #1a1a1a;
+}
+
+/* --- 基础布局 --- */
+body {
+  background: var(--page-bg);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  transition: background-color 0.3s ease;
+}
+
+/* --- PC 端卡片样式 (默认) --- */
+.box {
+  background: var(--box-bg);
+  box-shadow: var(--box-shadow);
+  width: 480px;
+  height: 640px; 
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 50px 40px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* --- PC 端元素样式 --- */
+.top-fixed {
+  flex-shrink: 0;
+}
+
+.word {
+  color: var(--text-primary);
+  font-size: 48px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  line-height: 1.2;
+  transition: color 0.3s ease;
+}
+
+.phonetic {
+  color: var(--text-secondary);
+  font-family: 'Charis SIL Local', sans-serif;
+  font-size: 32px;
+  margin-bottom: 6px;
+  font-weight: 400;
+  transition: color 0.3s ease;
+}
+
+.phonetic.transparent {
+  opacity: 0;
+}
+
+.divider {
+  background: var(--divider-color);
+  height: 1px;
+  margin: 16px 0 18px 0;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.middle-content {
+  overflow: hidden; 
+  min-height: 0;
+}
+
+.example {
+  color: var(--text-primary);
+  font-size: 24px;
+  margin-bottom: 16px;
+  line-height: 1.6;
+  transition: color 0.3s ease;
+}
+
+.definition {
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1.5;
+  margin-bottom: 0;
+  transition: color 0.3s ease;
+}
+
+.image-container {
+  flex: 1;
+  margin-top: 20px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px; 
+}
+
+.image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+
+
+/* === 移动端响应式样式 (无边框全屏模式) === */
+@media (max-width: 600px) {
+  /* 1. 让 body 成为内容容器 */
+  body {
+    display: flex;
+    flex-direction: column; /* 让 .box 能在 body 内部正常布局 */
+    align-items: stretch; /* 让 .box 宽度延展 */
+    justify-content: flex-start; /* 内容从顶部开始 */
+    
+    /* 2. 控制内容边距和顶部留白 */
+    height: 100vh;
+    box-sizing: border-box;
+    padding: 10vh 24px 5vh 24px; /* 上10%, 左右24px, 下5% */
+  }
+
+  /* 3. 让 .box 融入背景 */
+  .box {
+    width: 100%;
+    height: 100%; /* 高度占满 body 提供的空间 */
+    background: none; /* 移除背景色 */
+    box-shadow: none; /* 移除阴影 */
+    border-radius: 0; /* 移除圆角 */
+    padding: 0; /* 移除自身的内边距 */
+  }
+
+  /* 4. 调整字体大小以适应移动端屏幕 */
+  .word { font-size: 9vw; }
+  .phonetic { font-size: 6vw; }
+  .example { font-size: 5vw; }
+  .definition { font-size: 4.5vw; }
+
+  /* 5. 调整图片样式 */
+  .image-container {
+    min-height: 120px; /* 保证图片区域有足够的高度 */
+    border-radius: 8px; /* 给图片本身加一点圆角 */
+  }
+  .image-container img {
+    border-radius: 8px;
+  }
+}
