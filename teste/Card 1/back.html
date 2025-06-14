@@ -1,3 +1,10 @@
+<script>
+// ===== Delay Control Settings =====
+// 0   = Disable delay, show all content immediately
+// 0.5 = Delay time is set to half of the estimated duration
+var delayFactor = 1;
+</script>
+
 <!-- 翻译设置：修改 translation-mode-0 中的数字
      0 = 不显示翻译
      1 = 显示中文翻译
@@ -48,17 +55,17 @@
   var soundExampleDurText = '{{Sound_Example_Dur}}';
   var soundDur = parseFloat(soundDurText) || 0;
   var soundExampleDur = parseFloat(soundExampleDurText) || 0;
-  var totalDelay = soundDur + soundExampleDur;
+  var totalDelay = (soundDur + soundExampleDur) * delayFactor;
+  
+  var box = document.querySelector('.box');
   
   if (totalDelay > 0) {
     setTimeout(function() {
-      var box = document.querySelector('.box');
       if (box) {
         box.classList.add('show-delayed-content');
       }
     }, totalDelay * 1000);
   } else {
-    var box = document.querySelector('.box');
     if (box) {
       box.classList.add('show-delayed-content');
     }
