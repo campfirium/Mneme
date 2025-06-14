@@ -1,19 +1,36 @@
-@font-face {
+/*
+ * -----------------------------------------------------------------
+ *  Anki Card Template: Mneme
+ *  Version: 0.1
+ *  Author: Rommer
+ *  Created: 2025-06-13
+ *  Last Updated: 2025-06-13
+ *
+ *  Description:
+ *  A clean and modern Anki template designed for language learning,
+ *  featuring adaptive layouts for both desktop and mobile.
+ *
+ *  Contact & Feedback:
+ *  - GitHub: https://github.com/campfirium
+ *  - Forum: https://campfirium.info/c/lang-pool/
+ *
+ *  License: CC-BY-SA 4.0
+ * -----------------------------------------------------------------
+ */
+
+ @font-face {
   font-family: 'Charis SIL Local';
   src: url('_charis_sil_regular.ttf');
   font-display: swap;
 }
 
-
-/* --- 主题变量定义 --- */
+/* Theme Variables */
 :root {
-  /* 浅色主题 (默认) */
   --box-bg: #fff;
   --text-primary: #333333;
   --text-secondary: #666666;
   --divider-color: #f0f0f0;
   --box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1.5px 6px rgba(0,0,0,0.08);
-  /* --page-bg: #f7f7f9; */
 }
 
 .word { font-size: 48px; }
@@ -21,15 +38,13 @@
 .example { font-size: 22px; }
 .definition { font-size: 18px; }
 
-
-/* 当Anki处于深色模式时，重写变量 */
+/* Dark Theme */
 .night_mode, .card.night_mode {
   --box-bg: #2d2d2d;
   --text-primary: #f0f0f0;
   --text-secondary: #b0b0b0;
   --divider-color: #404040;
   --box-shadow: 0 4px 24px rgba(0,0,0,0.18);
-  /* --page-bg: #1a1a1a; */
 }
 
 @media (max-width: 600px) {
@@ -39,16 +54,14 @@
     --text-secondary: #c0c0c0;
     --divider-color: #707070;
     --box-shadow: 0 4px 24px rgba(0,0,0,0.18);
-    /* --page-bg: #1a1a1a; */
   }
-    /* 4. 调整字体大小以适应移动端屏幕 */
-    .word { font-size: 10vw; }
-    .phonetic { font-size: 9vw; }
-    .example { font-size: 6vw; }
-    .definition { font-size: 5vw; }
+  .word { font-size: 10vw; }
+  .phonetic { font-size: 9vw; }
+  .example { font-size: 6vw; }
+  .definition { font-size: 5vw; }
 }
 
-/* --- 基础布局 --- */
+/* Base Layout */
 body {
   background: var(--page-bg);
   min-height: 100vh;
@@ -60,7 +73,7 @@ body {
   transition: background-color 0.3s ease;
 }
 
-/* --- PC 端卡片样式 (默认) --- */
+/* Desktop Card Styles */
 .box {
   background: var(--box-bg);
   box-shadow: var(--box-shadow);
@@ -74,7 +87,6 @@ body {
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* --- PC 端元素样式 --- */
 .top-fixed {
   flex-shrink: 0;
 }
@@ -126,16 +138,15 @@ body {
   transition: color 0.3s ease;
 }
 
-/* 翻译控制系统 */
+/* Translation Control System */
 details {
-  display: none; /* 默认隐藏所有翻译 */
+  display: none;
 }
 
 .static-text {
-  display: block; /* 默认显示静态文本 */
+  display: block;
 }
 
-/* 模式 0: 不显示翻译 (默认) */
 .translation-mode-0 .static-text {
   display: block;
 }
@@ -143,7 +154,6 @@ details {
   display: none;
 }
 
-/* 模式 1: 显示中文翻译 */
 .translation-mode-1 .static-text {
   display: none;
 }
@@ -154,19 +164,25 @@ details {
 details summary {
   cursor: pointer;
   list-style: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
 }
 
 details summary::-webkit-details-marker {
   display: none;
 }
 
-/* 让 summary 继承父元素的样式 */
 .example details summary {
   color: var(--text-primary);
   font-size: 22px;
   line-height: 1.6;
   margin-bottom: 0;
-  transition: color 0.3s ease;
+  transition: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
 
 .definition details summary {
@@ -174,16 +190,41 @@ details summary::-webkit-details-marker {
   font-size: 18px;
   line-height: 1.5;
   margin-bottom: 0;
-  transition: color 0.3s ease;
+  transition: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
 
 @media (max-width: 600px) {
   .example details summary {
     font-size: 6vw;
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
   }
   
   .definition details summary {
     font-size: 5vw;
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
+  }
+  
+  /* 在移动端为折叠区域添加点击限制 */
+  .example details,
+  .definition details {
+    position: relative;
+  }
+  
+  .example details::after,
+  .definition details::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 20%;
+    height: 100%;
+    background: transparent;
+    z-index: 2;
+    pointer-events: auto;
   }
 }
 
@@ -205,45 +246,34 @@ details summary::-webkit-details-marker {
   display: block;
 }
 
-
-/* === 移动端响应式样式 (无边框全屏模式) === */
+/* Mobile Responsive Styles */
 @media (max-width: 600px) {
   body {
     align-items: flex-start !important;
     justify-content: flex-start !important;
     min-height: 0 !important;
     height: auto !important;
-  }
-
-  /* 1. 让 body 成为内容容器 */
-  body {
     display: flex;
-    flex-direction: column; /* 让 .box 能在 body 内部正常布局 */
-    align-items: stretch; /* 让 .box 宽度延展 */
-    justify-content: flex-start; /* 内容从顶部开始 */
-    
-    /* 2. 控制内容边距和顶部留白 */
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
     height: 100vh;
     box-sizing: border-box;
-    padding: 10vh 24px 5vh 24px; /* 上10%, 左右24px, 下5% */
+    padding: 10vh 24px 5vh 24px;
   }
 
-  /* 3. 让 .box 融入背景 */
   .box {
     width: 100%;
-    height: 100%; /* 高度占满 body 提供的空间 */
-    background: none; /* 移除背景色 */
-    box-shadow: none; /* 移除阴影 */
-    border-radius: 0; /* 移除圆角 */
-    padding: 0; /* 移除自身的内边距 */
+    height: 100%;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
   }
 
-
-
-  /* 5. 调整图片样式 */
   .image-container {
-    min-height: 120px; /* 保证图片区域有足够的高度 */
-    border-radius: 8px; /* 给图片本身加一点圆角 */
+    min-height: 120px;
+    border-radius: 8px;
   }
   .image-container img {
     border-radius: 8px;
