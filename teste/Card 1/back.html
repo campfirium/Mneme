@@ -48,47 +48,23 @@ var animationMode = 1;
 </div>
 
 <style>
-.delayed-content {
+.word {
   opacity: 0;
-  transition: none;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
 }
 
-.show-delayed-content .delayed-content {
+.word.is-visible {
   opacity: 1;
 }
 
-/* ===== Logarithmic Optimized Opacity Algorithm ===== */
-@keyframes opacity-logarithmic-optimized {
-  0% { opacity: 0.01; }
-  16% { opacity: 0.08; }
-  32% { opacity: 0.18; }
-  48% { opacity: 0.32; }
-  64% { opacity: 0.50; }
-  80% { opacity: 0.72; }
-  96% { opacity: 0.92; }
-  100% { opacity: 1; }
+.delayed-content {
+  opacity: 0;
+  transition: opacity 1s ease-out;
 }
 
-/* ===== Additional Animation Algorithms (Reserved for Future Use) ===== */
-/* Add new animation keyframes here if needed */
-
-/* ===== Content Fade-in Animation (1 second version) ===== */
-@keyframes content-fade-in {
-  0% { opacity: 0.01; }
-  20% { opacity: 0.15; }
-  40% { opacity: 0.35; }
-  60% { opacity: 0.55; }
-  80% { opacity: 0.75; }
-  100% { opacity: 1; }
-}
-
-/* Animation state styles */
-.word.animating {
-  transition: none;
-}
-
-.delayed-content.animating {
-  transition: none;
+.delayed-content.is-visible {
+  opacity: 1;
 }
 
 
@@ -102,109 +78,33 @@ var animationMode = 1;
   var soundExampleDur = parseFloat(soundExampleDurText) || 0;
   var totalDelay = (soundDur + soundExampleDur) * delayFactor;
   
-  var box = document.querySelector('.box');
-  var word = document.getElementById('animated-word');
+  var wordEl = document.getElementById('animated-word');
   var delayedElements = document.querySelectorAll('.delayed-content');
-  
-  // Debug information (uncomment for troubleshooting)
-  // console.log('Sound durations:', soundDur, soundExampleDur, 'Total delay:', totalDelay);
-  
-  if (totalDelay > 0) {
-    // Apply animation based on animationMode setting
-    if (animationMode === 0) {
-      // Mode 0: No animation, show word immediately
-      // console.log('Animation disabled, showing word immediately');
-      if (word) {
-        word.style.opacity = '1';
-      }
-    } else if (animationMode === 1) {
-      // Mode 1: Logarithmic optimized opacity animation
-      if (word) {
-        word.classList.add('animating');
-        word.style.animation = 'opacity-logarithmic-optimized ' + totalDelay + 's ease-out forwards';
-        // console.log('Word animation duration:', totalDelay + 's (Logarithmic Optimized Algorithm)');
-      }
-    }
-    // Mode 2 and above: Reserved for future animation algorithms
-    
-    // Apply 1-second fade-in animation to other content after delay
-    setTimeout(function() {
-      delayedElements.forEach(function(element) {
-        element.classList.add('animating');
-        element.style.animation = 'content-fade-in 1s ease-out forwards';
-      });
-      
-      // console.log('Other content starts 1-second fade-in animation');
-      
-      // Clean up animation states after 1 second
-      setTimeout(function() {
-        if (word) {
-          word.classList.remove('animating');
-        }
-        delayedElements.forEach(function(element) {
-          element.classList.remove('animating');
-          element.classList.add('show-delayed-content');
-        });
-        
-        if (box) {
-          box.classList.add('show-delayed-content');
-        }
-        
-        // console.log('All animations completed');
-      }, 1000);
-       
-    }, totalDelay * 1000);
-  } else {
-    // Use fixed timing when no delay detected
-    var fixedDelay = 3;
-    
-    if (animationMode === 0) {
-      // Mode 0: No animation, show all content immediately
-      // console.log('Animation disabled, showing all content immediately');
-      if (word) {
-        word.style.opacity = '1';
-      }
-      delayedElements.forEach(function(element) {
-        element.classList.add('show-delayed-content');
-      });
-      if (box) {
-        box.classList.add('show-delayed-content');
-      }
-    } else if (animationMode === 1) {
-      // Mode 1: Fixed 3-second word animation + 1-second content animation
-      // console.log('No delay detected, using fixed timing:', fixedDelay + 's word + 1s content');
-      
-      if (word) {
-        word.classList.add('animating');
-        word.style.animation = 'opacity-logarithmic-optimized ' + fixedDelay + 's ease-out forwards';
-      }
-       
-      // Show other content after 3 seconds
-      setTimeout(function() {
-        delayedElements.forEach(function(element) {
-          element.classList.add('animating');
-          element.style.animation = 'content-fade-in 1s ease-out forwards';
-        });
-         
-        // Clean up states after 1 second
-        setTimeout(function() {
-          if (word) {
-            word.classList.remove('animating');
-          }
-          delayedElements.forEach(function(element) {
-            element.classList.remove('animating');
-            element.classList.add('show-delayed-content');
-          });
-           
-          if (box) {
-            box.classList.add('show-delayed-content');
-          }
-        }, 1000);
-         
-      }, fixedDelay * 1000);
-    }
-    // Mode 2 and above: Reserved for future animation algorithms
+
+  var animationDuration = totalDelay > 0 ? totalDelay : 3;
+
+  if (animationMode === 0) {
+    if (wordEl) wordEl.classList.add('is-visible');
+    delayedElements.forEach(function(el) { el.classList.add('is-visible'); });
+    return;
   }
+
+  if (wordEl) {
+    wordEl.style.transitionDuration = animationDuration + 's';
+    
+    setTimeout(function() {
+      wordEl.classList.add('is-visible');
+    }, 20);
+  }
+
+  // 音频结束后，停顿 200ms，再开始其他内容的动画
+  var contentDelay = (animationDuration * 1000) + 200;
+  
+  setTimeout(function() {
+    delayedElements.forEach(function(el) {
+      el.classList.add('is-visible');
+    });
+  }, contentDelay);
 })();
 </script>
 
