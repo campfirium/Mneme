@@ -5,11 +5,11 @@
 <div class="box translation-mode-1">
   <div class="top-fixed">
     <div class="word">{{Word}}&#8203;</div>
-    <div class="phonetic">{{IPA}}</div>
-    <hr class="divider">
+    <div class="phonetic delayed-content">{{IPA}}</div>
+    <hr class="divider delayed-content">
   </div>
 
-  <div class="middle-content">
+  <div class="middle-content delayed-content">
     <div class="example">
       <div class="static-text">{{Example}}</div>
       <details class="translation-zh">
@@ -25,9 +25,44 @@
       </details>
     </div>
   </div>
-  <div class="image-container">
+  <div class="image-container delayed-content">
     {{Image}}
   </div>
-    <div class="sound">{{Sound}} {{Sound_Example}}</div>
+  <div class="sound">{{Sound}} {{Sound_Example}}</div>
 </div>
+
+<style>
+.delayed-content {
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.show-delayed-content .delayed-content {
+  opacity: 1;
+}
+</style>
+
+<script>
+(function() {
+  var soundDurText = '{{Sound_Dur}}';
+  var soundExampleDurText = '{{Sound_Example_Dur}}';
+  var soundDur = parseFloat(soundDurText) || 0;
+  var soundExampleDur = parseFloat(soundExampleDurText) || 0;
+  var totalDelay = soundDur + soundExampleDur;
+  
+  if (totalDelay > 0) {
+    setTimeout(function() {
+      var box = document.querySelector('.box');
+      if (box) {
+        box.classList.add('show-delayed-content');
+      }
+    }, totalDelay * 1000);
+  } else {
+    var box = document.querySelector('.box');
+    if (box) {
+      box.classList.add('show-delayed-content');
+    }
+  }
+})();
+</script>
 

@@ -1,0 +1,186 @@
+<script>
+    console.log("This is a clean script test. If you see this, the script block itself is working.");
+  </script>
+
+<!-- 翻译设置：修改 translation-mode-0 中的数字
+     0 = 不显示翻译
+     1 = 显示中文翻译
+-->
+<div class="box translation-mode-1">
+  <div class="top-fixed">
+    <div class="word">{{Word}}&#8203;</div>
+    <div class="phonetic">{{IPA}}</div>
+    <hr class="divider">
+  </div>
+
+  <div class="middle-content">
+    <div class="example">
+      <div class="static-text">{{Example}}</div>
+      <details class="translation-zh">
+        <summary>{{Example}}</summary>
+        <div class="translation">{{ExampleZH}}</div>
+      </details>
+    </div>
+    <div class="definition">
+      <div class="static-text">{{Meaning}}</div>
+      <details class="translation-zh">
+        <summary>{{Meaning}}</summary>
+        <div class="translation">{{MeaningZH}}</div>
+      </details>
+    </div>
+  </div>
+  <div class="image-container">
+    {{Image}}
+  </div>
+</div>
+
+<!-- 隐藏元素存储音频字段 -->
+<span id="audio-field" style="display:none;">{{Sound}} {{Sound_Example}}</span>
+
+<!-- 1. 隐形播放器 -->
+<audio id="player" style="display:none;" preload="auto"></audio>
+
+<style>
+.phonetic, .divider, .middle-content, .image-container {
+  display: none;
+}
+
+body.audio-finished .phonetic,
+body.audio-finished .divider,
+body.audio-finished .middle-content,
+body.audio-finished .image-container {
+  display: block;
+}
+
+.play-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 15px 0;
+  display: block;
+}
+
+.play-button:hover {
+  background: #0056b3;
+}
+</style>
+
+<script>
+(() => {
+  // 2. 从字段拿到文件列表，空格 / 换行分隔均可
+  const audioText = document.getElementById('audio-field').textContent.trim();
+  const queue = audioText.split(/\s+/).filter(f => f);
+  const player = document.getElementById('player');
+  let idx = 0;
+  let userInteracted = false;
+
+  console.log('音频队列:', queue);
+
+  // 检测是否为移动端
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  console.log('是否为移动端:', isMobile);
+
+  // 播放音频的函数
+  function playAudio() {
+    if (queue[idx]) {
+      console.log('播放音频:', queue[idx]);
+      player.src = queue[idx];
+      return player.play();
+    }
+    return Promise.resolve();
+  }
+
+  // 显示所有内容的函数
+  function showAllContent() {
+    console.log('显示所有内容');
+    document.body.classList.add('audio-finished');
+  }
+
+  // 尝试启用自动播放的函数
+  function enableAutoplay() {
+    if (!userInteracted && isMobile) {
+      // 在移动端检测到用户交互时立即播放
+      const events = ['touchstart', 'touchend', 'mousedown', 'keydown'];
+      const playOnInteraction = () => {
+        if (!userInteracted) {
+          userInteracted = true;
+          console.log('检测到用户交互，开始播放');
+          events.forEach(event => {
+            document.removeEventListener(event, playOnInteraction, true);
+          });
+          if (queue[0]) {
+            playAudio().catch(() => {
+              console.log('交互后播放仍失败，显示内容');
+              showAllContent();
+            });
+          }
+        }
+      };
+      
+      events.forEach(event => {
+        document.addEventListener(event, playOnInteraction, true);
+      });
+    }
+  }
+
+  // 3. 监听播放完毕
+  player.addEventListener('ended', () => {
+    console.log('播放完成:', queue[idx]);
+    if (++idx < queue.length) {
+      console.log('播放下一个:', queue[idx]);
+      playAudio().catch(() => {
+        console.log('后续播放失败，显示内容');
+        showAllContent();
+      });
+    } else {
+      console.log('所有音频播放完毕');
+      showAllContent();
+    }
+  });
+
+  // 预加载第一个音频
+  if (queue[0]) {
+    player.src = queue[0];
+    player.load();
+  }
+
+  // 4. 尝试自动播放
+  if (queue[0]) {
+    console.log('尝试自动播放第一个音频:', queue[0]);
+    
+    // 先尝试直接播放
+    playAudio().then(() => {
+      console.log('自动播放成功');
+      userInteracted = true;
+    }).catch(() => {
+      console.log('自动播放被阻止');
+      
+      if (isMobile) {
+        console.log('移动端：等待用户交互');
+        enableAutoplay();
+        
+        // 5秒后如果还没有用户交互，直接显示内容
+        setTimeout(() => {
+          if (!userInteracted) {
+            console.log('超时未检测到用户交互，显示内容');
+            showAllContent();
+          }
+        }, 5000);
+      } else {
+        console.log('PC端：直接显示内容');
+        showAllContent();
+      }
+    });
+  } else {
+    console.log('没有音频文件，直接显示内容');
+    showAllContent();
+  }
+})();
+</script>
+
+<!-- 5. 隐藏的 [sound] 用于媒体校验 -->
+<span style="display:none;">[sound:{{Sound}}] [sound:{{Sound_Example}}]</span>
