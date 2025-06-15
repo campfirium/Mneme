@@ -1,13 +1,9 @@
 <script>
-// ===== Delay Control Settings =====
-// 0   = Disable delay, show all content immediately
-// 0.5 = Delay time is set to half of the estimated duration
+// ===== Progress Bar Timing Control =====
+// 0   = Skip progress bar, show all content immediately
+// 0.5 = Progress bar duration = 50% of audio duration  
+// 1   = Progress bar duration = 100% of audio duration (full length)
 var delayFactor = 1;
-
-// ===== Animation Effect Settings =====
-// 0 = Disable animation effects, show word immediately
-// 1 = Logarithmic optimized opacity animation
-var animationMode = 1;
 </script>
 
 <!-- Non-Chinese users can ignore this setting
@@ -16,13 +12,11 @@ var animationMode = 1;
      1 = 显示中文翻译
 -->
 
-
-
 <div class="box translation-mode-1">
   <div class="top-fixed">
     <div class="word" id="animated-word">{{Word}}&#8203;</div>
-    <div class="phonetic delayed-content">{{IPA}}</div>
-    <hr class="divider delayed-content">
+    <div class="phonetic">{{IPA}}</div>
+    <hr class="divider progress-bar" id="progress-divider">
   </div>
 
   <div class="middle-content delayed-content">
@@ -49,13 +43,34 @@ var animationMode = 1;
 
 <style>
 .word {
-  opacity: 0;
-  transition-property: opacity;
-  transition-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+  opacity: 1;
 }
 
-.word.is-visible {
+.phonetic {
   opacity: 1;
+}
+
+.progress-bar {
+  width: 0 !important;
+  transition-property: width;
+  transition-timing-function: linear;
+}
+
+.progress-bar.animating {
+  width: 100% !important;
+}
+
+/* 确保在所有屏幕尺寸下进度条都能正常工作 */
+@media screen and (max-width: 600px) {
+  .progress-bar {
+    width: 0 !important;
+    transition-property: width !important;
+    transition-timing-function: linear !important;
+  }
+  
+  .progress-bar.animating {
+    width: 100% !important;
+  }
 }
 
 .delayed-content {
@@ -78,27 +93,29 @@ var animationMode = 1;
   var soundExampleDur = parseFloat(soundExampleDurText) || 0;
   var totalDelay = (soundDur + soundExampleDur) * delayFactor;
   
-  var wordEl = document.getElementById('animated-word');
+  var progressBar = document.getElementById('progress-divider');
   var delayedElements = document.querySelectorAll('.delayed-content');
 
   var animationDuration = totalDelay > 0 ? totalDelay : 3;
 
-  if (animationMode === 0) {
-    if (wordEl) wordEl.classList.add('is-visible');
+  if (delayFactor === 0) {
+    // delayFactor = 0: 跳过进度条，立即显示所有内容
+    if (progressBar) progressBar.classList.add('animating');
     delayedElements.forEach(function(el) { el.classList.add('is-visible'); });
     return;
   }
 
-  if (wordEl) {
-    wordEl.style.transitionDuration = animationDuration + 's';
+  // 启动进度条动画
+  if (progressBar) {
+    progressBar.style.transitionDuration = animationDuration + 's';
     
     setTimeout(function() {
-      wordEl.classList.add('is-visible');
+      progressBar.classList.add('animating');
     }, 20);
   }
 
-  // 音频结束后，停顿 200ms，再开始其他内容的动画
-  var contentDelay = (animationDuration * 1000) + 200;
+  // 音频结束时，立即显示其他内容
+  var contentDelay = animationDuration * 1000;
   
   setTimeout(function() {
     delayedElements.forEach(function(el) {

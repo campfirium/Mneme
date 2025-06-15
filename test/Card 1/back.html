@@ -1,13 +1,9 @@
 <script>
-// ===== Delay Control Settings =====
-// 0   = Disable delay, show all content immediately
-// 0.5 = Delay time is set to half of the estimated duration
+// ===== Progress Bar Timing Control =====
+// 0   = Skip progress bar, show all content immediately
+// 0.5 = Progress bar duration = 50% of audio duration  
+// 1   = Progress bar duration = 100% of audio duration (full length)
 var delayFactor = 1;
-
-// ===== Animation Effect Settings =====
-// 0 = Disable animation effects, show word immediately
-// 1 = Logarithmic optimized opacity animation
-var animationMode = 1;
 </script>
 
 <!-- Non-Chinese users can ignore this setting
@@ -21,8 +17,8 @@ var animationMode = 1;
 <div class="box translation-mode-1">
   <div class="top-fixed">
     <div class="word" id="animated-word">{{Word}}&#8203;</div>
-    <div class="phonetic delayed-content">{{IPA}}</div>
-    <hr class="divider delayed-content">
+    <div class="phonetic">{{IPA}}</div>
+    <hr class="divider progress-bar" id="progress-divider">
   </div>
 
   <div class="middle-content delayed-content">
@@ -48,47 +44,44 @@ var animationMode = 1;
 </div>
 
 <style>
-.delayed-content {
-  opacity: 0;
-  transition: none;
-}
-
-.show-delayed-content .delayed-content {
+.word {
   opacity: 1;
 }
 
-/* ===== Logarithmic Optimized Opacity Algorithm ===== */
-@keyframes opacity-logarithmic-optimized {
-  0% { opacity: 0.01; }
-  16% { opacity: 0.08; }
-  32% { opacity: 0.18; }
-  48% { opacity: 0.32; }
-  64% { opacity: 0.50; }
-  80% { opacity: 0.72; }
-  96% { opacity: 0.92; }
-  100% { opacity: 1; }
+.phonetic {
+  opacity: 1;
 }
 
-/* ===== Additional Animation Algorithms (Reserved for Future Use) ===== */
-/* Add new animation keyframes here if needed */
-
-/* ===== Content Fade-in Animation (1 second version) ===== */
-@keyframes content-fade-in {
-  0% { opacity: 0.01; }
-  20% { opacity: 0.15; }
-  40% { opacity: 0.35; }
-  60% { opacity: 0.55; }
-  80% { opacity: 0.75; }
-  100% { opacity: 1; }
+.progress-bar {
+  width: 0 !important;
+  transition-property: width;
+  transition-timing-function: linear;
 }
 
-/* Animation state styles */
-.word.animating {
-  transition: none;
+.progress-bar.animating {
+  width: 100% !important;
 }
 
-.delayed-content.animating {
-  transition: none;
+/* 确保在所有屏幕尺寸下进度条都能正常工作 */
+@media screen and (max-width: 600px) {
+  .progress-bar {
+    width: 0 !important;
+    transition-property: width !important;
+    transition-timing-function: linear !important;
+  }
+  
+  .progress-bar.animating {
+    width: 100% !important;
+  }
+}
+
+.delayed-content {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+
+.delayed-content.is-visible {
+  opacity: 1;
 }
 
 
@@ -102,109 +95,35 @@ var animationMode = 1;
   var soundExampleDur = parseFloat(soundExampleDurText) || 0;
   var totalDelay = (soundDur + soundExampleDur) * delayFactor;
   
-  var box = document.querySelector('.box');
-  var word = document.getElementById('animated-word');
+  var progressBar = document.getElementById('progress-divider');
   var delayedElements = document.querySelectorAll('.delayed-content');
-  
-  // Debug information (uncomment for troubleshooting)
-  // console.log('Sound durations:', soundDur, soundExampleDur, 'Total delay:', totalDelay);
-  
-  if (totalDelay > 0) {
-    // Apply animation based on animationMode setting
-    if (animationMode === 0) {
-      // Mode 0: No animation, show word immediately
-      // console.log('Animation disabled, showing word immediately');
-      if (word) {
-        word.style.opacity = '1';
-      }
-    } else if (animationMode === 1) {
-      // Mode 1: Logarithmic optimized opacity animation
-      if (word) {
-        word.classList.add('animating');
-        word.style.animation = 'opacity-logarithmic-optimized ' + totalDelay + 's ease-out forwards';
-        // console.log('Word animation duration:', totalDelay + 's (Logarithmic Optimized Algorithm)');
-      }
-    }
-    // Mode 2 and above: Reserved for future animation algorithms
-    
-    // Apply 1-second fade-in animation to other content after delay
-    setTimeout(function() {
-      delayedElements.forEach(function(element) {
-        element.classList.add('animating');
-        element.style.animation = 'content-fade-in 1s ease-out forwards';
-      });
-      
-      // console.log('Other content starts 1-second fade-in animation');
-      
-      // Clean up animation states after 1 second
-      setTimeout(function() {
-        if (word) {
-          word.classList.remove('animating');
-        }
-        delayedElements.forEach(function(element) {
-          element.classList.remove('animating');
-          element.classList.add('show-delayed-content');
-        });
-        
-        if (box) {
-          box.classList.add('show-delayed-content');
-        }
-        
-        // console.log('All animations completed');
-      }, 1000);
-       
-    }, totalDelay * 1000);
-  } else {
-    // Use fixed timing when no delay detected
-    var fixedDelay = 3;
-    
-    if (animationMode === 0) {
-      // Mode 0: No animation, show all content immediately
-      // console.log('Animation disabled, showing all content immediately');
-      if (word) {
-        word.style.opacity = '1';
-      }
-      delayedElements.forEach(function(element) {
-        element.classList.add('show-delayed-content');
-      });
-      if (box) {
-        box.classList.add('show-delayed-content');
-      }
-    } else if (animationMode === 1) {
-      // Mode 1: Fixed 3-second word animation + 1-second content animation
-      // console.log('No delay detected, using fixed timing:', fixedDelay + 's word + 1s content');
-      
-      if (word) {
-        word.classList.add('animating');
-        word.style.animation = 'opacity-logarithmic-optimized ' + fixedDelay + 's ease-out forwards';
-      }
-       
-      // Show other content after 3 seconds
-      setTimeout(function() {
-        delayedElements.forEach(function(element) {
-          element.classList.add('animating');
-          element.style.animation = 'content-fade-in 1s ease-out forwards';
-        });
-         
-        // Clean up states after 1 second
-        setTimeout(function() {
-          if (word) {
-            word.classList.remove('animating');
-          }
-          delayedElements.forEach(function(element) {
-            element.classList.remove('animating');
-            element.classList.add('show-delayed-content');
-          });
-           
-          if (box) {
-            box.classList.add('show-delayed-content');
-          }
-        }, 1000);
-         
-      }, fixedDelay * 1000);
-    }
-    // Mode 2 and above: Reserved for future animation algorithms
+
+  var animationDuration = totalDelay > 0 ? totalDelay : 3;
+
+  if (delayFactor === 0) {
+    // delayFactor = 0: 跳过进度条，立即显示所有内容
+    if (progressBar) progressBar.classList.add('animating');
+    delayedElements.forEach(function(el) { el.classList.add('is-visible'); });
+    return;
   }
+
+  // 启动进度条动画
+  if (progressBar) {
+    progressBar.style.transitionDuration = animationDuration + 's';
+    
+    setTimeout(function() {
+      progressBar.classList.add('animating');
+    }, 20);
+  }
+
+  // 音频结束时，立即显示其他内容
+  var contentDelay = animationDuration * 1000;
+  
+  setTimeout(function() {
+    delayedElements.forEach(function(el) {
+      el.classList.add('is-visible');
+    });
+  }, contentDelay);
 })();
 </script>
 
