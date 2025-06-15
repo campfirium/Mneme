@@ -285,3 +285,49 @@ details summary::-webkit-details-marker {
 }
 
 .sound {height:0px !important;opacity:0}
+
+.word {
+  opacity: 1;
+}
+
+.phonetic {
+  opacity: 1;
+}
+
+.progress-bar {
+  width: 0 !important;
+  transition-property: width;
+  transition-timing-function: linear;
+}
+
+.progress-bar.animating {
+  width: 100% !important;
+}
+
+@media screen and (max-width: 600px) {
+  .progress-bar {
+    width: 0 !important;
+    transition-property: width !important;
+    transition-timing-function: linear !important;
+  }
+  
+  .progress-bar.animating {
+    width: 100% !important;
+  }
+}
+
+.delayed-content {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+
+.delayed-content.is-visible {
+  opacity: 1;
+}
+
+.translation-mode-0 .translation-zh { 
+  display: none !important; 
+}
+.translation-mode-1 .translation-zh { 
+  display: block; 
+}

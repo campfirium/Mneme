@@ -1,13 +1,17 @@
 <script>
-// ===== Progress Bar Timing Control =====
-// 0   = Skip progress bar, show all content immediately
-// 0.5 = Progress bar duration = 50% of audio duration  
-// 1   = Progress bar duration = 100% of audio duration (full length)
+// ===== Content Reveal Delay =====
+// Sets how long to wait before showing content (audio × delayFactor)
+// 0 = Show immediately
+// 1 = Wait full audio duration
+// <1 = Shorter delay
+// >1 = Longer delay
 var delayFactor = 1;
 
-// ===== Translation Mode Control =====
-// 0 = Hide Chinese translations
-// 1 = Show Chinese translations  
+// ===== Translation Display =====
+// Controls which translation language is shown.
+// 0 = No translation
+// 1 = Chinese translation
+// 2 = (reserved) — more languages to be added
 var translationMode = 1;
 </script>
 
@@ -42,57 +46,7 @@ var translationMode = 1;
   <div class="sound">{{Sound}} {{Sound_Example}}</div>
 </div>
 
-<style>
-.word {
-  opacity: 1;
-}
 
-.phonetic {
-  opacity: 1;
-}
-
-.progress-bar {
-  width: 0 !important;
-  transition-property: width;
-  transition-timing-function: linear;
-}
-
-.progress-bar.animating {
-  width: 100% !important;
-}
-
-/* 确保在所有屏幕尺寸下进度条都能正常工作 */
-@media screen and (max-width: 600px) {
-  .progress-bar {
-    width: 0 !important;
-    transition-property: width !important;
-    transition-timing-function: linear !important;
-  }
-  
-  .progress-bar.animating {
-    width: 100% !important;
-  }
-}
-
-.delayed-content {
-  opacity: 0;
-  transition: opacity 1s ease-out;
-}
-
-.delayed-content.is-visible {
-  opacity: 1;
-}
-
-/* Translation display control via CSS classes */
-.translation-mode-0 .translation-zh { 
-  display: none !important; 
-}
-.translation-mode-1 .translation-zh { 
-  display: block; 
-}
-
-
-</style>
 
 <script>
 (function() {
@@ -102,7 +56,7 @@ var translationMode = 1;
   var soundExampleDur = parseFloat(soundExampleDurText) || 0;
   var totalDelay = (soundDur + soundExampleDur) * delayFactor;
   
-  // 应用翻译模式设置
+  
   document.getElementById('card-box').classList.add('translation-mode-' + translationMode);
 
   var progressBar = document.getElementById('progress-divider');
@@ -111,13 +65,13 @@ var translationMode = 1;
   var animationDuration = totalDelay > 0 ? totalDelay : 3;
 
   if (delayFactor === 0) {
-    // delayFactor = 0: 跳过进度条，立即显示所有内容
+    
     if (progressBar) progressBar.classList.add('animating');
     delayedElements.forEach(function(el) { el.classList.add('is-visible'); });
     return;
   }
 
-  // 启动进度条动画
+  
   if (progressBar) {
     progressBar.style.transitionDuration = animationDuration + 's';
     
@@ -126,7 +80,7 @@ var translationMode = 1;
     }, 20);
   }
 
-  // 音频结束时，立即显示其他内容
+  
   var contentDelay = animationDuration * 1000;
   
   setTimeout(function() {
