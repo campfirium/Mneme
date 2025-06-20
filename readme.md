@@ -2,11 +2,18 @@
 
 An Anki template built for immersion and audio-first learning, with a clean and thoughtful visual design
 
-## Preview
 
-[![Click to watch the demo](https://github-production-user-asset-6210df.s3.amazonaws.com/196198909/457511855-aa901e87-a7cf-4c9c-8531-4f71c66e70af.gif)](https://youtu.be/6YfyFnwHqTo)
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=U7cLHxE8hKs">
+    <img src="https://img.youtube.com/vi/U7cLHxE8hKs/maxresdefault.jpg" alt="Mneme Anki Theme Showcase" width="80%">
+  </a>
+</p>
 
-*Click the animation above to watch the full demo on YouTube.*
+
+<p align="center">
+  <em>Watch the showcase video above to see all features in action.</em>
+</p>
+
 
 ---
 
@@ -25,8 +32,8 @@ An Anki template built for immersion and audio-first learning, with a clean and 
 
 ## Feedback & Community
 
--   **Bugs & Suggestions**: [Open an Issue](https://github.com/campfirium/Mneme/issues)
--   **Discussion & Guides**: [Campfirium Forum](https://campfirium.info/t/mneme-an-anki-template-built-for-immersion-and-audio-first-learning-with-a-clean-and-thoughtful-visual-design/593)
+-   **Bugs & Suggestions**: [Open an Issue] (https://github.com/campfirium/Mneme/issues)
+-   **Discussion & Guides**: [Campfirium Forum] (https://campfirium.info)
 
 ---
 
