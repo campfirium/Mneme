@@ -6,9 +6,9 @@
   },
   "cardTemplate": {
     "Card 1": {
-      "front": "d:\\C\\mis\\Mneme\\test\\Card 1\\front.html",
-      "back": "d:\\C\\mis\\Mneme\\test\\Card 1\\back.html"
+      "front": "d:\\C\\mis\\Mneme\\AnkiSide\\Card 1\\front.html",
+      "back": "d:\\C\\mis\\Mneme\\AnkiSide\\Card 1\\back.html"
     }
   },
-  "cardCss": "d:\\C\\mis\\Mneme\\test\\styling.css"
+  "cardCss": "d:\\C\\mis\\Mneme\\AnkiSide\\styling.css"
 }
