@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "复制 teste 到 test",
+      "label": "copy to AnkiSide",
       "type": "shell",
-      "command": ".\\copy-folder.bat",
+      "command": ".\\scripts\\copy-folder.bat",
       "group": {
         "kind": "build",
         "isDefault": true
