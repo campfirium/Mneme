@@ -88,10 +88,55 @@ summary::-webkit-details-marker {
 
 <script>
 (function() {
+  // Audio duration estimation functions
+  function cleanText(text) {
+    // Remove HTML tags and normalize whitespace
+    return text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  }
+  
+  function countCharacters(text) {
+    // Count letters, numbers, but exclude punctuation and special characters
+    return (text.match(/[a-zA-Z0-9]/g) || []).length;
+  }
+  
+  function countWords(text) {
+    // Split by whitespace and filter out empty strings
+    return text.split(/\s+/).filter(word => word.length > 0).length;
+  }
+  
+  function estimateWordDuration(wordText) {
+    var cleanedText = cleanText(wordText);
+    if (!cleanedText) return 0;
+    
+    var charCount = countCharacters(cleanedText);
+    // Formula: 400ms base + 80ms per character, convert to seconds
+    return (400 + charCount * 80) / 1000;
+  }
+  
+  function estimateSentenceDuration(sentenceText) {
+    var cleanedText = cleanText(sentenceText);
+    if (!cleanedText) return 0;
+    
+    var wordCount = countWords(cleanedText);
+    var charCount = countCharacters(cleanedText);
+    // Formula: 500ms base + 100ms per word + 50ms per character, convert to seconds
+    return (500 + wordCount * 100 + charCount * 50) / 1000;
+  }
+
   var soundDurText = '{{Sound_Dur}}';
   var soundExampleDurText = '{{Sound_Example_Dur}}';
   var soundDur = parseFloat(soundDurText) || 0;
   var soundExampleDur = parseFloat(soundExampleDurText) || 0;
+  
+  // Use estimation when duration fields are empty
+  if (!soundDur && soundDurText.trim() === '') {
+    soundDur = estimateWordDuration('{{Word}}');
+  }
+  
+  if (!soundExampleDur && soundExampleDurText.trim() === '') {
+    soundExampleDur = estimateSentenceDuration('{{Example}}');
+  }
+  
   var totalDelay = (soundDur + soundExampleDur) * delayFactor;
   
   var cardBox = document.getElementById('card-box');
