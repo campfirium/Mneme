@@ -177,3 +177,71 @@ summary::-webkit-details-marker {
 })();
 </script>
 
+<script>
+// ===== OneMoreTurn MVP =====
+(function() {
+  const OMT_CONFIG = {
+    triggerInterval: 5,
+    messages: [
+      '🎉 太棒了！已完成 {count} 张卡片！',
+      '💪 继续加油，你很棒！',
+      '🔥 保持这个节奏！',
+      '⭐ 又进步了，厉害！'
+    ]
+  };
+
+  function getCount() {
+    return parseInt(localStorage.getItem('omt_count') || '0', 10);
+  }
+
+  function setCount(count) {
+    localStorage.setItem('omt_count', count.toString());
+  }
+
+  function showMotivation(count) {
+    const messages = OMT_CONFIG.messages;
+    const message = messages[Math.floor(Math.random() * messages.length)];
+    const displayMessage = message.replace('{count}', count);
+    alert(displayMessage);
+  }
+
+  function handleCardAnswered() {
+    const currentCount = getCount() + 1;
+    setCount(currentCount);
+
+    if (currentCount % OMT_CONFIG.triggerInterval === 0) {
+      showMotivation(currentCount);
+    }
+  }
+
+  // 使用MutationObserver监听答案区域出现
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.addedNodes.length > 0) {
+        // 检查是否有答案按钮出现
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const hasAnswerButtons = node.querySelector && (
+              node.querySelector('[data-ease]') ||
+              node.querySelector('.ease') ||
+              node.className && node.className.includes('ease')
+            );
+            if (hasAnswerButtons) {
+              handleCardAnswered();
+              observer.disconnect();
+              return;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 开始观察DOM变化
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+})();
+</script>
+
