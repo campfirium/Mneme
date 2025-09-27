@@ -14,22 +14,15 @@ Updated: 2025-06-21
 </div>
 
 <script>
-// ===== Progress Notifications =====
-// Controls dual progress notification system
-// 0 = Disabled
-// 1 = Enabled
-var progressNotifications = 1;
-
-// ===== Progress Notification Position =====
-// Controls vertical position of progress notifications
-// 0 = Top (10%)
-// 50 = Center (50%) - default
-// 90 = Bottom (90%)
-var notificationHeight = 50;
-
 // ===== OneMoreTurn MVP =====
 (function() {
-  if (!progressNotifications) return;
+  // Read configuration from localStorage (set by back.html)
+  var hitCountShow = parseInt(localStorage.getItem('mneme_hit_count_show') || '1');
+  var hitPosition = parseInt(localStorage.getItem('mneme_hit_position') || '50');
+  var shortHitText = localStorage.getItem('mneme_short_hit_text') || '{count} HIT{!}';
+  var longHitText = localStorage.getItem('mneme_long_hit_text') || '{count} HIT{!}';
+
+  if (!hitCountShow) return;
 
   // 测试参数
   var shortProgressTrigger = 1;  // 每1张显示短进度
@@ -43,7 +36,7 @@ var notificationHeight = 50;
       // 长进度：短进度样式放大一倍
       popup.style.cssText = `
         position: fixed;
-        top: ${notificationHeight}%;
+        top: ${hitPosition}%;
         left: 50%;
         transform: translate(-50%, -50%);
         background: #FF6B6B;
@@ -65,7 +58,7 @@ var notificationHeight = 50;
       // 短进度：原样式，但可调位置
       popup.style.cssText = `
         position: fixed;
-        top: ${notificationHeight}%;
+        top: ${hitPosition}%;
         left: 50%;
         transform: translate(-50%, -50%);
         background: #FF6B6B;
@@ -127,14 +120,40 @@ var notificationHeight = 50;
   const currentCount = getCount() + 1;
   setCount(currentCount);
 
+  // 随机选择文本
+  function getRandomText(textList) {
+    // 用 | 分割文本
+    var texts = textList.split('|');
+    // 过滤空文本
+    texts = texts.filter(function(text) { return text.trim(); });
+    // 如果没有文本，返回默认
+    if (texts.length === 0) return '{count} HIT{!}';
+    // 随机选择一个
+    var randomIndex = Math.floor(Math.random() * texts.length);
+    return texts[randomIndex].trim();
+  }
+
+  // 占位符替换函数
+  function replacePlaceholders(template, count) {
+    const exclamations = '!'.repeat(Math.min(count, 10));
+    const exclamationCount = Math.min(count, 10);
+
+    return template
+      .replace(/\{count\}/g, count)
+      .replace(/\{!\}/g, exclamations)
+      .replace(/\{!count\}/g, exclamationCount);
+  }
+
   // 检查是否触发长进度（优先级更高）
   if (currentCount % longProgressTrigger === 0) {
-    const exclamations = '!'.repeat(Math.min(currentCount, 10));
-    showCenterPopup(`${currentCount} HIT${exclamations}`, true);
+    const selectedText = getRandomText(longHitText);
+    const message = replacePlaceholders(selectedText, currentCount);
+    showCenterPopup(message, true);
   } else if (currentCount % shortProgressTrigger === 0) {
     // 短进度
-    const exclamations = '!'.repeat(Math.min(currentCount, 10));
-    showCenterPopup(`${currentCount} HIT${exclamations}`);
+    const selectedText = getRandomText(shortHitText);
+    const message = replacePlaceholders(selectedText, currentCount);
+    showCenterPopup(message);
   }
 })();
 </script>
