@@ -89,8 +89,34 @@ var notificationHeight = 50;
     document.body.appendChild(popup);
   }
 
-  function getCount() {
+  function getResetKey() {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // 如果当前时间在凌晨4点前，使用前一天的日期作为重置键
+    if (now.getHours() < 4) {
+      today.setDate(today.getDate() - 1);
+    }
+
+    return today.toDateString();
+  }
+
+  function checkAndResetCount() {
+    const currentResetKey = getResetKey();
+    const lastResetKey = localStorage.getItem('omt_last_reset') || '';
+
+    if (currentResetKey !== lastResetKey) {
+      // 新的一天（凌晨4点后），重置计数
+      localStorage.setItem('omt_count', '0');
+      localStorage.setItem('omt_last_reset', currentResetKey);
+      return 0;
+    }
+
     return parseInt(localStorage.getItem('omt_count') || '0', 10);
+  }
+
+  function getCount() {
+    return checkAndResetCount();
   }
 
   function setCount(count) {
