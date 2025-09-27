@@ -12,3 +12,103 @@ Updated: 2025-06-21
     <div class="phonetic transparent">{{IPA}}</div>
   </div>
 </div>
+
+<script>
+// ===== Progress Notifications =====
+// Controls dual progress notification system
+// 0 = Disabled
+// 1 = Enabled
+var progressNotifications = 1;
+
+// ===== Progress Notification Position =====
+// Controls vertical position of progress notifications
+// 0 = Top (10%)
+// 50 = Center (50%) - default
+// 90 = Bottom (90%)
+var notificationHeight = 50;
+
+// ===== OneMoreTurn MVP =====
+(function() {
+  if (!progressNotifications) return;
+
+  // 测试参数
+  var shortProgressTrigger = 1;  // 每1张显示短进度
+  var longProgressTrigger = 2;   // 每2张显示长进度
+
+  // 中心弹窗显示
+  function showCenterPopup(message, isLong = false) {
+    const popup = document.createElement('div');
+
+    if (isLong) {
+      // 长进度：短进度样式放大一倍
+      popup.style.cssText = `
+        position: fixed;
+        top: ${notificationHeight}%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #FF6B6B;
+        color: white;
+        padding: 40px 60px;
+        border-radius: 20px;
+        font-size: 48px;
+        font-weight: bold;
+        z-index: 99999;
+        box-shadow: 0 16px 32px rgba(0,0,0,0.3);
+        text-align: center;
+      `;
+      setTimeout(() => {
+        if (popup.parentNode) {
+          popup.parentNode.removeChild(popup);
+        }
+      }, 3000); // 3秒消失
+    } else {
+      // 短进度：原样式，但可调位置
+      popup.style.cssText = `
+        position: fixed;
+        top: ${notificationHeight}%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #FF6B6B;
+        color: white;
+        padding: 20px 30px;
+        border-radius: 10px;
+        font-size: 24px;
+        font-weight: bold;
+        z-index: 99999;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        text-align: center;
+      `;
+      setTimeout(() => {
+        if (popup.parentNode) {
+          popup.parentNode.removeChild(popup);
+        }
+      }, 1500); // 1.5秒消失
+    }
+
+    popup.innerHTML = message;
+    document.body.appendChild(popup);
+  }
+
+  function getCount() {
+    return parseInt(localStorage.getItem('omt_count') || '0', 10);
+  }
+
+  function setCount(count) {
+    localStorage.setItem('omt_count', count.toString());
+  }
+
+  // 正面加载时触发计数（表示开始学习新卡片）
+  const currentCount = getCount() + 1;
+  setCount(currentCount);
+
+  // 检查是否触发长进度（优先级更高）
+  if (currentCount % longProgressTrigger === 0) {
+    const exclamations = '!'.repeat(Math.min(currentCount, 10));
+    showCenterPopup(`${currentCount} HIT${exclamations}`, true);
+  } else if (currentCount % shortProgressTrigger === 0) {
+    // 短进度
+    const exclamations = '!'.repeat(Math.min(currentCount, 10));
+    showCenterPopup(`${currentCount} HIT${exclamations}`);
+  }
+})();
+</script>
