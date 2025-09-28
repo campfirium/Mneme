@@ -20,30 +20,21 @@ var translationMode = 1;
 // 1 = Can interrupt by clicking center area
 var interruptible = 1;
 
-// ===== Hit Count Show =====
-// Controls hit count notification system
+// ===== Hit Motivation =====
+// Shows encouraging messages when user clicks "Again" repeatedly
 // 0 = Disabled
 // 1 = Enabled
-var hitCountShow = 1;
+var hitMotivation = 1;
 
-// ===== Hit Position =====
-// Controls vertical position of hit notifications
-// 0 = Top (10%)
-// 50 = Center (50%) - default
-// 90 = Bottom (90%)
-var hitPosition = 50;
+// ===== Hit Settings =====
+// [trigger count, duration ms, vertical position %]
+var quickHit = [1, 1500, 50];   // Show after 1 hit, 1.5s duration, 50% height
+var comboHit = [2, 3000, 50];   // Show after 2 hits, 3s duration, 50% height
 
-// ===== Short Hit Text =====
-// Custom text for short hit notification
-// Use: {count}, {!}, {!count}
-// Multiple texts separated by | for random selection
-var shortHitText = "{count} HIT{!}|Nice work {count}!";
-
-// ===== Long Hit Text =====
-// Custom text for long hit notification
-// Use: {count}, {!}, {!count}
-// Multiple texts separated by | for random selection
-var longHitText = "{count} HIT{!}|🎉 Awesome {count}! 🎉";
+// ===== Hit Messages =====
+// Random messages shown (separated by |)
+var quickHitMessages = "{count} HIT{!}|Nice work {count}!";
+var comboHitMessages = "{count} HIT{!}|🎉 Awesome {count}! 🎉";
 
 </script>
 
@@ -116,10 +107,11 @@ summary::-webkit-details-marker {
 <script>
 (function() {
   // Save configuration to localStorage for front.html to use
-  localStorage.setItem('mneme_hit_count_show', hitCountShow.toString());
-  localStorage.setItem('mneme_hit_position', hitPosition.toString());
-  localStorage.setItem('mneme_short_hit_text', shortHitText);
-  localStorage.setItem('mneme_long_hit_text', longHitText);
+  localStorage.setItem('mneme_hit_motivation', hitMotivation.toString());
+  localStorage.setItem('mneme_quick_hit', JSON.stringify(quickHit));
+  localStorage.setItem('mneme_combo_hit', JSON.stringify(comboHit));
+  localStorage.setItem('mneme_quick_hit_messages', quickHitMessages);
+  localStorage.setItem('mneme_combo_hit_messages', comboHitMessages);
 
   var soundDurText = '{{Sound_Dur}}';
   var soundExampleDurText = '{{Sound_Example_Dur}}';

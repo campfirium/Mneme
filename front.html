@@ -17,26 +17,30 @@ Updated: 2025-06-21
 // ===== OneMoreTurn MVP =====
 (function() {
   // Read configuration from localStorage (set by back.html)
-  var hitCountShow = parseInt(localStorage.getItem('mneme_hit_count_show') || '1');
-  var hitPosition = parseInt(localStorage.getItem('mneme_hit_position') || '50');
-  var shortHitText = localStorage.getItem('mneme_short_hit_text') || '{count} HIT{!}';
-  var longHitText = localStorage.getItem('mneme_long_hit_text') || '{count} HIT{!}';
+  var hitMotivation = parseInt(localStorage.getItem('mneme_hit_motivation') || '1');
+  var quickHit = JSON.parse(localStorage.getItem('mneme_quick_hit') || '[1,1500,50]');
+  var comboHit = JSON.parse(localStorage.getItem('mneme_combo_hit') || '[2,3000,50]');
+  var quickHitMessages = localStorage.getItem('mneme_quick_hit_messages') || '{count} HIT{!}';
+  var comboHitMessages = localStorage.getItem('mneme_combo_hit_messages') || '{count} HIT{!}';
 
-  if (!hitCountShow) return;
+  var quickTrigger = quickHit[0];
+  var quickDuration = quickHit[1];
+  var quickPosition = quickHit[2];
+  var comboTrigger = comboHit[0];
+  var comboDuration = comboHit[1];
+  var comboPosition = comboHit[2];
 
-  // 测试参数
-  var shortProgressTrigger = 1;  // 每1张显示短进度
-  var longProgressTrigger = 2;   // 每2张显示长进度
+  if (!hitMotivation) return;
 
   // 中心弹窗显示
   function showCenterPopup(message, isLong = false) {
     const popup = document.createElement('div');
 
     if (isLong) {
-      // 长进度：短进度样式放大一倍
+      // 连击：放大样式
       popup.style.cssText = `
         position: fixed;
-        top: ${hitPosition}%;
+        top: ${comboPosition}%;
         left: 50%;
         transform: translate(-50%, -50%);
         background: #FF6B6B;
@@ -53,12 +57,12 @@ Updated: 2025-06-21
         if (popup.parentNode) {
           popup.parentNode.removeChild(popup);
         }
-      }, 3000); // 3秒消失
+      }, comboDuration);
     } else {
-      // 短进度：原样式，但可调位置
+      // 快速：普通样式
       popup.style.cssText = `
         position: fixed;
-        top: ${hitPosition}%;
+        top: ${quickPosition}%;
         left: 50%;
         transform: translate(-50%, -50%);
         background: #FF6B6B;
@@ -75,7 +79,7 @@ Updated: 2025-06-21
         if (popup.parentNode) {
           popup.parentNode.removeChild(popup);
         }
-      }, 1500); // 1.5秒消失
+      }, quickDuration);
     }
 
     popup.innerHTML = message;
@@ -144,14 +148,14 @@ Updated: 2025-06-21
       .replace(/\{!count\}/g, exclamationCount);
   }
 
-  // 检查是否触发长进度（优先级更高）
-  if (currentCount % longProgressTrigger === 0) {
-    const selectedText = getRandomText(longHitText);
+  // 检查是否触发连击（优先级更高）
+  if (currentCount % comboTrigger === 0) {
+    const selectedText = getRandomText(comboHitMessages);
     const message = replacePlaceholders(selectedText, currentCount);
     showCenterPopup(message, true);
-  } else if (currentCount % shortProgressTrigger === 0) {
-    // 短进度
-    const selectedText = getRandomText(shortHitText);
+  } else if (currentCount % quickTrigger === 0) {
+    // 快速反馈
+    const selectedText = getRandomText(quickHitMessages);
     const message = replacePlaceholders(selectedText, currentCount);
     showCenterPopup(message);
   }
