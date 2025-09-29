@@ -54,19 +54,19 @@ Updated: 2025-06-21
 (function() {
   // Read configuration from localStorage (set by back.html)
   var hitMotivation = parseInt(localStorage.getItem('mneme_hit_motivation') || '1');
-  var quickHit = JSON.parse(localStorage.getItem('mneme_quick_hit') || '[1,1500,50,48]');
-  var comboHit = JSON.parse(localStorage.getItem('mneme_combo_hit') || '[2,3000,50,96]');
+  var quickHit = JSON.parse(localStorage.getItem('mneme_quick_hit') || '[10,1500,50,40]');
+  var comboHit = JSON.parse(localStorage.getItem('mneme_combo_hit') || '[50,3000,50,50]');
   var quickHitMessages = JSON.parse(localStorage.getItem('mneme_quick_hit_messages') || '["NICE WORK|{count}"]');
   var comboHitMessages = JSON.parse(localStorage.getItem('mneme_combo_hit_messages') || '["NICE WORK|{count}"]');
 
   var quickTrigger = quickHit[0];
   var quickDuration = quickHit[1];
   var quickPosition = quickHit[2];
-  var quickFontSize = quickHit[3] || 48;
+  var quickFontSize = quickHit[3] || 40;
   var comboTrigger = comboHit[0];
   var comboDuration = comboHit[1];
   var comboPosition = comboHit[2];
-  var comboFontSize = comboHit[3] || 36;
+  var comboFontSize = comboHit[3] || 50;
 
   if (!hitMotivation) return;
 
@@ -147,8 +147,8 @@ Updated: 2025-06-21
       `;
 
       // 根据类型设置不同的倍数比例
-      const subtitleMultiplier = isLong ? 0.6 : 0.4;  // 连击副标题稍大
-      const titleMultiplier = isLong ? 3.5 : 2.5;     // 连击主标题更大
+      const subtitleMultiplier = isLong ? 0.7 : 0.5;  // 连击副标题稍大
+      const titleMultiplier = isLong ? 2.2 : 1.8;     // 连击主标题更大
 
       // 设置副标题样式：小、细、灰
       const subtitle = popup.querySelector('.milestone-subtitle');
