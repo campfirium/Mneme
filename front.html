@@ -6,6 +6,42 @@ Feedback: https://campfirium.info/t/595
 Updated: 2025-06-21
 -->
 
+<style>
+/* 主次分明设计动画 */
+@keyframes containerFadeInOut {
+  0%, 100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+  10%, 90% {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@keyframes subtitleAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes titleAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+</style>
+
 <div class="box">
   <div class="top-fixed">
     <div class="word">{{Word}}</div>
@@ -18,72 +54,140 @@ Updated: 2025-06-21
 (function() {
   // Read configuration from localStorage (set by back.html)
   var hitMotivation = parseInt(localStorage.getItem('mneme_hit_motivation') || '1');
-  var quickHit = JSON.parse(localStorage.getItem('mneme_quick_hit') || '[1,1500,50]');
-  var comboHit = JSON.parse(localStorage.getItem('mneme_combo_hit') || '[2,3000,50]');
-  var quickHitMessages = localStorage.getItem('mneme_quick_hit_messages') || '{count} HIT{!}';
-  var comboHitMessages = localStorage.getItem('mneme_combo_hit_messages') || '{count} HIT{!}';
+  var quickHit = JSON.parse(localStorage.getItem('mneme_quick_hit') || '[1,1500,50,48]');
+  var comboHit = JSON.parse(localStorage.getItem('mneme_combo_hit') || '[2,3000,50,96]');
+  var quickHitMessages = JSON.parse(localStorage.getItem('mneme_quick_hit_messages') || '["NICE WORK|{count}"]');
+  var comboHitMessages = JSON.parse(localStorage.getItem('mneme_combo_hit_messages') || '["NICE WORK|{count}"]');
 
   var quickTrigger = quickHit[0];
   var quickDuration = quickHit[1];
   var quickPosition = quickHit[2];
+  var quickFontSize = quickHit[3] || 48;
   var comboTrigger = comboHit[0];
   var comboDuration = comboHit[1];
   var comboPosition = comboHit[2];
+  var comboFontSize = comboHit[3] || 36;
 
   if (!hitMotivation) return;
 
-  // 中心弹窗显示
-  function showCenterPopup(message, isLong = false) {
-    const popup = document.createElement('div');
+  // 随机选择文本（从数组中）
+  function getRandomText(textArray) {
+    if (!Array.isArray(textArray) || textArray.length === 0) {
+      return "NICE WORK|{count}";
+    }
+    var randomIndex = Math.floor(Math.random() * textArray.length);
+    return textArray[randomIndex];
+  }
 
-    if (isLong) {
-      // 连击：放大样式
-      popup.style.cssText = `
-        position: fixed;
-        top: ${comboPosition}%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #FF6B6B;
-        color: white;
-        padding: 40px 60px;
-        border-radius: 20px;
-        font-size: 48px;
-        font-weight: bold;
-        z-index: 99999;
-        box-shadow: 0 16px 32px rgba(0,0,0,0.3);
-        text-align: center;
-      `;
-      setTimeout(() => {
-        if (popup.parentNode) {
-          popup.parentNode.removeChild(popup);
-        }
-      }, comboDuration);
+  // 解析消息格式：subtitle|title
+  function parseMessage(template, count) {
+    // 先进行随机选择
+    const selectedText = getRandomText(template);
+
+    // 替换占位符
+    const processed = selectedText
+      .replace(/\{count\}/g, count)
+      .replace(/\{!\}/g, '')  // 去掉感叹号
+      .replace(/\{!count\}/g, Math.min(count, 10));
+
+    // 用|分割为两部分：subtitle|title
+    const parts = processed.split('|');
+    if (parts.length >= 2) {
+      // 分层格式
+      return {
+        type: 'hierarchy',
+        subtitle: parts[0] ? parts[0].trim() : '',
+        title: parts[1] ? parts[1].trim() : ''
+      };
     } else {
-      // 快速：普通样式
+      // 单行格式
+      return { type: 'single', content: processed.trim() };
+    }
+  }
+
+  // 中心弹窗显示 - 主次分明设计
+  function showCenterPopup(message, isLong = false, count = 1) {
+    const popup = document.createElement('div');
+    const baseFontSize = isLong ? comboFontSize : quickFontSize;
+    const duration = isLong ? comboDuration : quickDuration;
+    const position = isLong ? comboPosition : quickPosition;
+
+    const parsed = parseMessage(message, count);
+
+    if (parsed.type === 'single') {
+      // 单行显示
+      popup.innerHTML = parsed.content;
       popup.style.cssText = `
         position: fixed;
-        top: ${quickPosition}%;
+        top: ${position}%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: #FF6B6B;
-        color: white;
-        padding: 20px 30px;
-        border-radius: 10px;
-        font-size: 24px;
-        font-weight: bold;
         z-index: 99999;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
         text-align: center;
+        font-size: ${baseFontSize * 2}px;
+        font-weight: bold;
+        color: var(--text-primary, #333);
+        animation: containerFadeInOut ${duration/1000}s forwards;
       `;
-      setTimeout(() => {
-        if (popup.parentNode) {
-          popup.parentNode.removeChild(popup);
-        }
-      }, quickDuration);
+    } else {
+      // 主次分明显示
+      popup.innerHTML = `
+        <div class="milestone-subtitle">${parsed.subtitle}</div>
+        <div class="milestone-title">${parsed.title}</div>
+      `;
+
+      popup.style.cssText = `
+        position: fixed;
+        top: ${position}%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 99999;
+        text-align: center;
+        animation: containerFadeInOut ${duration/1000}s forwards;
+      `;
+
+      // 根据类型设置不同的倍数比例
+      const subtitleMultiplier = isLong ? 0.6 : 0.4;  // 连击副标题稍大
+      const titleMultiplier = isLong ? 3.5 : 2.5;     // 连击主标题更大
+
+      // 设置副标题样式：小、细、灰
+      const subtitle = popup.querySelector('.milestone-subtitle');
+      if (subtitle) {
+        subtitle.style.cssText = `
+          font-size: ${baseFontSize * subtitleMultiplier}px;
+          font-weight: normal;
+          color: var(--text-secondary, #666);
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          margin-bottom: 10px;
+          animation: subtitleAppear 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+          animation-delay: 0.1s;
+          opacity: 0;
+        `;
+      }
+
+      // 设置主标题样式：大、粗、白
+      const title = popup.querySelector('.milestone-title');
+      if (title) {
+        title.style.cssText = `
+          font-size: ${baseFontSize * titleMultiplier}px;
+          font-weight: bold;
+          color: var(--text-primary, #333);
+          line-height: 1.1;
+          animation: titleAppear 0.6s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+          animation-delay: 0.3s;
+          opacity: 0;
+        `;
+      }
     }
 
-    popup.innerHTML = message;
     document.body.appendChild(popup);
+
+    setTimeout(() => {
+      if (popup.parentNode) {
+        popup.parentNode.removeChild(popup);
+      }
+    }, duration);
   }
 
   function getResetKey() {
@@ -124,18 +228,7 @@ Updated: 2025-06-21
   const currentCount = getCount() + 1;
   setCount(currentCount);
 
-  // 随机选择文本
-  function getRandomText(textList) {
-    // 用 | 分割文本
-    var texts = textList.split('|');
-    // 过滤空文本
-    texts = texts.filter(function(text) { return text.trim(); });
-    // 如果没有文本，返回默认
-    if (texts.length === 0) return '{count} HIT{!}';
-    // 随机选择一个
-    var randomIndex = Math.floor(Math.random() * texts.length);
-    return texts[randomIndex].trim();
-  }
+  // 不再需要随机选择，因为|现在用作分层语法
 
   // 占位符替换函数
   function replacePlaceholders(template, count) {
@@ -150,14 +243,10 @@ Updated: 2025-06-21
 
   // 检查是否触发连击（优先级更高）
   if (currentCount % comboTrigger === 0) {
-    const selectedText = getRandomText(comboHitMessages);
-    const message = replacePlaceholders(selectedText, currentCount);
-    showCenterPopup(message, true);
+    showCenterPopup(comboHitMessages, true, currentCount);
   } else if (currentCount % quickTrigger === 0) {
     // 快速反馈
-    const selectedText = getRandomText(quickHitMessages);
-    const message = replacePlaceholders(selectedText, currentCount);
-    showCenterPopup(message);
+    showCenterPopup(quickHitMessages, false, currentCount);
   }
 })();
 </script>

@@ -27,14 +27,24 @@ var interruptible = 1;
 var hitMotivation = 1;
 
 // ===== Hit Settings =====
-// [trigger count, duration ms, vertical position %]
-var quickHit = [1, 1500, 50];   // Show after 1 hit, 1.5s duration, 50% height
-var comboHit = [2, 3000, 50];   // Show after 2 hits, 3s duration, 50% height
+// [trigger count, duration ms, vertical position %, font size quick, font size combo]
+var quickHit = [1, 1500, 50, 40];   // Show after 1 hit, 1.5s duration, 50% height, 40px base font
+var comboHit = [2, 3000, 50, 40];   // Show after 2 hits, 3s duration, 50% height, 40px base font
 
 // ===== Hit Messages =====
-// Random messages shown (separated by |)
-var quickHitMessages = "{count} HIT{!}|Nice work {count}!";
-var comboHitMessages = "{count} HIT{!}|🎉 Awesome {count}! 🎉";
+// Array for random selection, use | inside each item for hierarchy
+// Format: "subtitle|title" - subtitle is small/gray, title is large/main
+var quickHitMessages = [
+  "NICE|{count}",
+  "GOOD|{count}",
+  "KEEP GOING|{count}"
+];
+var comboHitMessages = [
+  "GREAT|{count}",
+  "EXCELLENT|{count}",
+  "AMAZING|{count}",
+  "PERFECT|{count}"
+];
 
 </script>
 
@@ -110,8 +120,8 @@ summary::-webkit-details-marker {
   localStorage.setItem('mneme_hit_motivation', hitMotivation.toString());
   localStorage.setItem('mneme_quick_hit', JSON.stringify(quickHit));
   localStorage.setItem('mneme_combo_hit', JSON.stringify(comboHit));
-  localStorage.setItem('mneme_quick_hit_messages', quickHitMessages);
-  localStorage.setItem('mneme_combo_hit_messages', comboHitMessages);
+  localStorage.setItem('mneme_quick_hit_messages', JSON.stringify(quickHitMessages));
+  localStorage.setItem('mneme_combo_hit_messages', JSON.stringify(comboHitMessages));
 
   var soundDurText = '{{Sound_Dur}}';
   var soundExampleDurText = '{{Sound_Example_Dur}}';
