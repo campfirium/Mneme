@@ -1,0 +1,170 @@
+<script>
+// ===== Content Reveal Delay =====
+// Sets how long to wait before showing content (audio × delayFactor)
+// 0 = Show immediately
+// 1 = Wait full audio duration
+// <1 = Shorter delay
+// >1 = Longer delay
+var delayFactor = 1;
+
+// ===== Translation Display =====
+// Controls which translation language is shown.
+// 0 = No translation
+// 1 = Chinese translation
+// 2 = (reserved) — more languages to be added
+var translationMode = 1;
+
+// ===== Interruptible Delay =====
+// Controls whether the delay can be interrupted by clicking
+// 0 = Cannot interrupt
+// 1 = Can interrupt by clicking center area
+var interruptible = 1;
+
+// ===== Hit Motivation =====
+// Shows encouraging messages when user clicks "Again" repeatedly
+// 0 = Disabled
+// 1 = Enabled
+var hitMotivation = 1;
+
+// ===== Hit Settings =====
+// [trigger count, duration ms, vertical position %, font size quick, font size combo]
+var quickHit = [10, 1500, 50, 40];   // Show after 10 hits, 1.5s duration, 50% height, 40px base font
+var comboHit = [50, 3000, 50, 50];   // Show after 50 hits, 3s duration, 50% height, 50px base font
+
+// ===== Hit Messages =====
+// Array for random selection, use | inside each item for hierarchy
+// Format: "subtitle|title" - subtitle is small/gray, title is large/main
+var quickHitMessages = [
+  "NICE|{count}",
+  "GOOD|{count}",
+  "KEEP GOING|{count}"
+];
+var comboHitMessages = [
+  "GREAT|{count}",
+  "EXCELLENT|{count}",
+  "AMAZING|{count}",
+  "PERFECT|{count}"
+];
+
+</script>
+
+
+<div class="box" id="card-box">
+  <div class="top-fixed">
+    <div class="word" id="animated-word">{{Word}}&#8203;</div>
+    <div class="phonetic">{{IPA}}</div>
+    <hr class="divider progress-bar" id="progress-divider">
+  </div>
+
+  <div class="middle-content delayed-content">
+    <div class="example">
+      <div class="static-text">{{Example}}</div>
+      <details class="translation-zh">
+        <summary>{{Example}}</summary>
+        <div class="translation">{{ExampleZH}}</div>
+      </details>
+    </div>
+    <div class="definition">
+      <div class="static-text">{{Meaning}}</div>
+      <details class="translation-zh">
+        <summary>{{Meaning}}</summary>
+        <div class="translation">{{MeaningZH}}</div>
+      </details>
+    </div>
+  </div>
+  <div class="image-container delayed-content">
+    {{Image}}
+  </div>
+  <div class="sound">{{Sound}} {{Sound_Example}}</div>
+</div>
+
+
+
+<script>
+(function() {
+  localStorage.setItem('mneme_hit_motivation', hitMotivation.toString());
+  localStorage.setItem('mneme_quick_hit', JSON.stringify(quickHit));
+  localStorage.setItem('mneme_combo_hit', JSON.stringify(comboHit));
+  localStorage.setItem('mneme_quick_hit_messages', JSON.stringify(quickHitMessages));
+  localStorage.setItem('mneme_combo_hit_messages', JSON.stringify(comboHitMessages));
+
+  var soundDurText = '{{Sound_Dur}}';
+  var soundExampleDurText = '{{Sound_Example_Dur}}';
+  var soundDur = parseFloat(soundDurText) || 0;
+  var soundExampleDur = parseFloat(soundExampleDurText) || 0;
+  var totalDelay = (soundDur + soundExampleDur) * delayFactor;
+  
+  var cardBox = document.getElementById('card-box');
+  var progressBar = document.getElementById('progress-divider');
+  var delayedElements = document.querySelectorAll('.delayed-content');
+  
+  cardBox.classList.add('translation-mode-' + translationMode);
+
+  if (interruptible === 1) {
+    cardBox.classList.add('interruptible-mode');
+  }
+
+  var animationDuration = totalDelay > 0 ? totalDelay : 3;
+  var contentTimeout;
+  var isRevealed = false;
+
+  function revealContent() {
+    if (isRevealed) return;
+    isRevealed = true;
+    
+    if (progressBar) progressBar.classList.add('animating');
+    delayedElements.forEach(function(el) { el.classList.add('is-visible'); });
+    
+    if (contentTimeout) {
+      clearTimeout(contentTimeout);
+      contentTimeout = null;
+    }
+  }
+
+  function handleClick(event) {
+    if (interruptible === 1 && !isRevealed) {
+      var rect = cardBox.getBoundingClientRect();
+      var centerX = rect.left + rect.width / 2;
+      var centerY = rect.top + rect.height / 2;
+      var clickX = event.clientX;
+      var clickY = event.clientY;
+      
+      var centerWidth = rect.width * 0.5;
+      var centerHeight = rect.height * 0.5;
+      
+      if (Math.abs(clickX - centerX) <= centerWidth / 2 && 
+          Math.abs(clickY - centerY) <= centerHeight / 2) {
+        revealContent();
+      }
+    }
+  }
+
+  if (interruptible === 1) {
+    cardBox.addEventListener('click', handleClick);
+    cardBox.addEventListener('touchend', handleClick);
+  }
+
+  if (delayFactor === 0) {
+    revealContent();
+    return;
+  }
+
+  if (progressBar) {
+    progressBar.style.transitionDuration = animationDuration + 's';
+    
+    setTimeout(function() {
+      if (!isRevealed) {
+        progressBar.classList.add('animating');
+      }
+    }, 20);
+  }
+
+  var contentDelay = animationDuration * 1000;
+  
+  contentTimeout = setTimeout(function() {
+    revealContent();
+  }, contentDelay);
+})();
+</script>
+
+
