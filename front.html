@@ -1,46 +1,4 @@
-<!-- 
-Deck: 4000 Essential English Words — Immersion & Audio-First Edition [en-en (+zh…)]
-Ankiweb: https://ankiweb.net/shared/info/348980197
-Maintainer: Campfirium 
-Feedback: https://campfirium.info/t/595
-Updated: 2025-06-21
--->
 
-<style>
-/* 主次分明设计动画 */
-@keyframes containerFadeInOut {
-  0%, 100% {
-    opacity: 0;
-    visibility: hidden;
-  }
-  10%, 90% {
-    opacity: 1;
-    visibility: visible;
-  }
-}
-
-@keyframes subtitleAppear {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes titleAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-</style>
 
 <div class="box">
   <div class="top-fixed">
@@ -70,7 +28,6 @@ Updated: 2025-06-21
 
   if (!hitMotivation) return;
 
-  // 随机选择文本（从数组中）
   function getRandomText(textArray) {
     if (!Array.isArray(textArray) || textArray.length === 0) {
       return "NICE WORK|{count}";
@@ -79,33 +36,29 @@ Updated: 2025-06-21
     return textArray[randomIndex];
   }
 
-  // 解析消息格式：subtitle|title
+  // Parse message format: subtitle|title
   function parseMessage(template, count) {
-    // 先进行随机选择
     const selectedText = getRandomText(template);
 
-    // 替换占位符
     const processed = selectedText
       .replace(/\{count\}/g, count)
-      .replace(/\{!\}/g, '')  // 去掉感叹号
+      .replace(/\{!\}/g, '')  // Remove exclamation marks
       .replace(/\{!count\}/g, Math.min(count, 10));
 
-    // 用|分割为两部分：subtitle|title
+    // Split into two parts using |: subtitle|title
     const parts = processed.split('|');
     if (parts.length >= 2) {
-      // 分层格式
       return {
         type: 'hierarchy',
         subtitle: parts[0] ? parts[0].trim() : '',
         title: parts[1] ? parts[1].trim() : ''
       };
     } else {
-      // 单行格式
       return { type: 'single', content: processed.trim() };
     }
   }
 
-  // 中心弹窗显示 - 主次分明设计
+  // Center popup display - hierarchical design
   function showCenterPopup(message, isLong = false, count = 1) {
     const popup = document.createElement('div');
     const baseFontSize = isLong ? comboFontSize : quickFontSize;
@@ -115,7 +68,6 @@ Updated: 2025-06-21
     const parsed = parseMessage(message, count);
 
     if (parsed.type === 'single') {
-      // 单行显示
       popup.innerHTML = parsed.content;
       popup.style.cssText = `
         position: fixed;
@@ -130,7 +82,6 @@ Updated: 2025-06-21
         animation: containerFadeInOut ${duration/1000}s forwards;
       `;
     } else {
-      // 主次分明显示
       popup.innerHTML = `
         <div class="milestone-subtitle">${parsed.subtitle}</div>
         <div class="milestone-title">${parsed.title}</div>
@@ -146,11 +97,11 @@ Updated: 2025-06-21
         animation: containerFadeInOut ${duration/1000}s forwards;
       `;
 
-      // 根据类型设置不同的倍数比例
-      const subtitleMultiplier = isLong ? 0.7 : 0.5;  // 连击副标题稍大
-      const titleMultiplier = isLong ? 2.2 : 1.8;     // 连击主标题更大
+      // Set different multiplier ratios based on type
+      const subtitleMultiplier = isLong ? 0.7 : 0.5;  // Combo subtitle slightly larger
+      const titleMultiplier = isLong ? 2.2 : 1.8;     // Combo title larger
 
-      // 设置副标题样式：小、细、灰
+      // Set subtitle style: small, thin, gray
       const subtitle = popup.querySelector('.milestone-subtitle');
       if (subtitle) {
         subtitle.style.cssText = `
@@ -166,7 +117,7 @@ Updated: 2025-06-21
         `;
       }
 
-      // 设置主标题样式：大、粗、白
+      // Set title style: large, bold, white
       const title = popup.querySelector('.milestone-title');
       if (title) {
         title.style.cssText = `
@@ -194,7 +145,7 @@ Updated: 2025-06-21
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // 如果当前时间在凌晨4点前，使用前一天的日期作为重置键
+    // If current time is before 4 AM, use previous day's date as reset key
     if (now.getHours() < 4) {
       today.setDate(today.getDate() - 1);
     }
@@ -207,7 +158,7 @@ Updated: 2025-06-21
     const lastResetKey = localStorage.getItem('omt_last_reset') || '';
 
     if (currentResetKey !== lastResetKey) {
-      // 新的一天（凌晨4点后），重置计数
+      // New day (after 4 AM), reset counter
       localStorage.setItem('omt_count', '0');
       localStorage.setItem('omt_last_reset', currentResetKey);
       return 0;
@@ -224,13 +175,11 @@ Updated: 2025-06-21
     localStorage.setItem('omt_count', count.toString());
   }
 
-  // 正面加载时触发计数（表示开始学习新卡片）
+  // Trigger count when front loads (indicates starting to learn new card)
   const currentCount = getCount() + 1;
   setCount(currentCount);
 
-  // 不再需要随机选择，因为|现在用作分层语法
 
-  // 占位符替换函数
   function replacePlaceholders(template, count) {
     const exclamations = '!'.repeat(Math.min(count, 10));
     const exclamationCount = Math.min(count, 10);
@@ -241,11 +190,10 @@ Updated: 2025-06-21
       .replace(/\{!count\}/g, exclamationCount);
   }
 
-  // 检查是否触发连击（优先级更高）
+  // Check if combo trigger is activated (higher priority)
   if (currentCount % comboTrigger === 0) {
     showCenterPopup(comboHitMessages, true, currentCount);
   } else if (currentCount % quickTrigger === 0) {
-    // 快速反馈
     showCenterPopup(quickHitMessages, false, currentCount);
   }
 })();

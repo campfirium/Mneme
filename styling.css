@@ -216,7 +216,7 @@ details summary::-webkit-details-marker {
     outline: none !important;
   }
   
-  /* 在移动端为折叠区域添加点击限制 */
+  /* Add click restrictions for collapsible areas on mobile */
   .example details,
   .definition details {
     position: relative;
@@ -333,9 +333,72 @@ details summary::-webkit-details-marker {
   opacity: 1;
 }
 
-.translation-mode-0 .translation-zh { 
-  display: none !important; 
+.translation-mode-0 .translation-zh {
+  display: none !important;
 }
-.translation-mode-1 .translation-zh { 
-  display: block; 
+.translation-mode-1 .translation-zh {
+  display: block;
+}
+
+/* OneMoreTurn motivation animations */
+@keyframes containerFadeInOut {
+  0%, 100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+  10%, 90% {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@keyframes subtitleAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes titleAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile interaction styles */
+.box {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.box.interruptible-mode {
+  cursor: pointer;
+}
+
+/* Text selection for content areas */
+.example, .definition,
+.static-text, .translation,
+details, summary,
+details > summary,
+.translation-zh {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+summary {
+  cursor: text;
+}
+
+summary::-webkit-details-marker {
+  cursor: pointer;
 }
