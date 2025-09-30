@@ -28,6 +28,12 @@ An Anki template built for immersion and audio-first learning, with a clean and 
 -   **Modular Translations:** Easily enable optional language support with a single switch.
 -   **Button-Free Workflow:** Designed for keyboard and gesture power users.
 
+### **Progress & Motivation**
+
+-   **Milestone Notifications:** Receive clean, encouraging pop-ups at key milestones to help build rhythm and a sense of achievement (the counter resets daily at 4 AM).
+-   **Template-Based Customization:** Easily edit the motivational messages and trigger frequency directly within the card template code.
+
+
 ## Feedback & Community
 
 -   **Bugs & Suggestions**: [Open an Issue](https://github.com/campfirium/Mneme/issues)
