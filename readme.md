@@ -4,9 +4,9 @@ An Anki template built for immersion and audio-first learning, with a clean and 
 
 ## Preview
 
-[![Click to watch the demo](https://github.com/user-attachments/assets/aa901e87-a7cf-4c9c-8531-4f71c66e70af)](https://youtu.be/6YfyFnwHqTo)
+![Mneme Template Demo](assets/preview.gif)
 
-*Click the animation above to watch the full demo on YouTube.*
+*Interactive Anki template showcasing audio-first learning with progressive content revelation and milestone notifications.*
 
 ---
 
