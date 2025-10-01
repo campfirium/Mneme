@@ -2,20 +2,86 @@
 
 <div class="box">
   <div class="top-fixed">
-    <div class="word">{{Word}}</div>
+    <div class="word" style="display: flex; justify-content: space-between; align-items: baseline;">
+      <span>{{Word}}</span>
+      <span id="debug-counter" style="display:none;"></span>
+    </div>
     <div class="phonetic transparent">{{IPA}}</div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/anki-storage@latest/dist/anki-storage.umd.js" onload="window.ankiStorageLoaded=true"></script>
+
 <script>
 // ===== OneMoreTurn MVP =====
-(function() {
+(async function() {
+  // Wait a bit for AnkiStorage to load
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  // Detect platform and choose storage
+  var ua = navigator.userAgent;
+  var isAnkiDroid = ua.indexOf('AnkiDroid') !== -1;
+  var isAnkiMobile = ua.indexOf('AnkiMobile') !== -1;
+  var isMobile = isAnkiDroid || isAnkiMobile || /Mobile|Android|iPhone|iPad/i.test(ua);
+
+  var storage = localStorage; // default
+  var storageType = 'localStorage';
+
+  // Show first 20 chars of UA for debugging
+  var uaShort = ua.substring(0, 30);
+  var storageInfo = 'UA:' + uaShort + '... M:' + (isMobile ? 'Y' : 'N') + ' LIB:' + (typeof AnkiStorage !== 'undefined' ? 'Y' : 'N');
+
+  // Platform-specific storage strategy:
+  // - AnkiDroid: anki-storage (persistent across app restarts)
+  // - iOS/Desktop: sessionStorage (persistent during study session)
+  if (isAnkiDroid && typeof AnkiStorage !== 'undefined') {
+    // AnkiDroid: use anki-storage for full persistence
+    try {
+      var as = await AnkiStorage.getAnkiStorage();
+      storage = {
+        getItem: function(key) { return as.localStorage.getItem(key); },
+        setItem: function(key, val) { return as.localStorage.setItem(key, val); }
+      };
+      storageType = 'anki-storage';
+      storageInfo += ' ST:AS';
+    } catch (e) {
+      storageInfo += ' ST:SS ERR:' + e.message.substring(0, 20);
+      // Fallback to sessionStorage
+      storage = sessionStorage;
+      storageType = 'sessionStorage';
+    }
+  } else {
+    // iOS and Desktop: use sessionStorage (session-level persistence)
+    storage = sessionStorage;
+    storageType = 'sessionStorage';
+    storageInfo += ' ST:SS';
+  }
+
+  // Helper to get value (handles both sync and async)
+  async function getValue(key, defaultVal) {
+    try {
+      var val = await storage.getItem(key);
+      return val || defaultVal;
+    } catch (e) {
+      return storage.getItem(key) || defaultVal;
+    }
+  }
+
+  // Helper to set value (handles both sync and async)
+  async function setValue(key, val) {
+    try {
+      await storage.setItem(key, val);
+    } catch (e) {
+      storage.setItem(key, val);
+    }
+  }
+
   // Read configuration from localStorage (set by back.html)
-  var hitMotivation = parseInt(localStorage.getItem('mneme_hit_motivation') || '1');
-  var quickHit = JSON.parse(localStorage.getItem('mneme_quick_hit') || '[10,1500,50,40]');
-  var comboHit = JSON.parse(localStorage.getItem('mneme_combo_hit') || '[50,3000,50,50]');
-  var quickHitMessages = JSON.parse(localStorage.getItem('mneme_quick_hit_messages') || '["NICE WORK|{count}"]');
-  var comboHitMessages = JSON.parse(localStorage.getItem('mneme_combo_hit_messages') || '["NICE WORK|{count}"]');
+  var hitMotivation = parseInt(await getValue('mneme_hit_motivation', '1'));
+  var quickHit = JSON.parse(await getValue('mneme_quick_hit', '[10,1500,50,40]'));
+  var comboHit = JSON.parse(await getValue('mneme_combo_hit', '[50,3000,50,50]'));
+  var quickHitMessages = JSON.parse(await getValue('mneme_quick_hit_messages', '["NICE WORK|{count}"]'));
+  var comboHitMessages = JSON.parse(await getValue('mneme_combo_hit_messages', '["NICE WORK|{count}"]'));
 
   var quickTrigger = quickHit[0];
   var quickDuration = quickHit[1];
@@ -150,32 +216,49 @@
     return today.toDateString();
   }
 
-  function checkAndResetCount() {
+  async function checkAndResetCount() {
     const currentResetKey = getResetKey();
-    const lastResetKey = localStorage.getItem('omt_last_reset') || '';
+    const lastResetKey = await getValue('omt_last_reset', '');
 
     if (currentResetKey !== lastResetKey) {
       // New day (after 4 AM), reset counter
-      localStorage.setItem('omt_count', '0');
-      localStorage.setItem('omt_last_reset', currentResetKey);
+      await setValue('omt_count', '0');
+      await setValue('omt_last_reset', currentResetKey);
       return 0;
     }
 
-    return parseInt(localStorage.getItem('omt_count') || '0', 10);
+    return parseInt(await getValue('omt_count', '0'), 10);
   }
 
-  function getCount() {
-    return checkAndResetCount();
+  async function getCount() {
+    return await checkAndResetCount();
   }
 
-  function setCount(count) {
-    localStorage.setItem('omt_count', count.toString());
+  async function setCount(count) {
+    await setValue('omt_count', count.toString());
   }
 
   // Trigger count when front loads (indicates starting to learn new card)
-  const currentCount = getCount() + 1;
-  setCount(currentCount);
+  const currentCount = await getCount() + 1;
+  await setCount(currentCount);
 
+  // Debug mode: Display counter (controlled by back.html debugMode setting)
+  var debugModeEnabled = parseInt(await getValue('mneme_debug_mode', '0'));
+  if (debugModeEnabled === 1) {
+    var debugCounter = document.getElementById('debug-counter');
+    if (debugCounter) {
+      // 🔒 = anki-storage (AnkiDroid full persistence)
+      // 📦 = sessionStorage (iOS/Desktop session persistence)
+      var storageIndicator = storageType === 'anki-storage' ? '🔒' : '📦';
+      debugCounter.textContent = currentCount + ' ' + storageIndicator + ' ' + storageInfo;
+      debugCounter.style.display = 'inline';
+      debugCounter.style.fontSize = '0.3em';
+      debugCounter.style.color = 'var(--text-secondary, #999)';
+      debugCounter.style.fontWeight = 'normal';
+      debugCounter.style.opacity = '0.6';
+      debugCounter.style.marginLeft = '0.5em';
+    }
+  }
 
   // Check if combo trigger is activated (higher priority)
   if (currentCount % comboTrigger === 0) {

@@ -26,6 +26,12 @@ var interruptible = 1;
 // 1 = Enabled
 var hitMotivation = 1;
 
+// ===== Debug Mode =====
+// Shows hit counter on the card for debugging
+// 0 = Disabled (production mode)
+// 1 = Enabled (show counter on word line)
+var debugMode = 0;
+
 // ===== Hit Settings =====
 // [trigger count, duration ms, vertical position %, font size quick, font size combo]
 var quickHit = [10, 1500, 50, 40];   // Show after 10 hits, 1.5s duration, 50% height, 40px base font
@@ -51,7 +57,10 @@ var comboHitMessages = [
 
 <div class="box" id="card-box">
   <div class="top-fixed">
-    <div class="word" id="animated-word">{{Word}}&#8203;</div>
+    <div class="word" id="animated-word" style="display: flex; justify-content: space-between; align-items: baseline;">
+      <span>{{Word}}&#8203;</span>
+      <span id="debug-counter" style="display:none;"></span>
+    </div>
     <div class="phonetic">{{IPA}}</div>
     <hr class="divider progress-bar" id="progress-divider">
   </div>
@@ -82,7 +91,9 @@ var comboHitMessages = [
 
 <script>
 (function() {
+  // Back side uses simple localStorage for config only
   localStorage.setItem('mneme_hit_motivation', hitMotivation.toString());
+  localStorage.setItem('mneme_debug_mode', debugMode.toString());
   localStorage.setItem('mneme_quick_hit', JSON.stringify(quickHit));
   localStorage.setItem('mneme_combo_hit', JSON.stringify(comboHit));
   localStorage.setItem('mneme_quick_hit_messages', JSON.stringify(quickHitMessages));
