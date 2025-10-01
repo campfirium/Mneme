@@ -40,10 +40,7 @@
   function parseMessage(template, count) {
     const selectedText = getRandomText(template);
 
-    const processed = selectedText
-      .replace(/\{count\}/g, count)
-      .replace(/\{!\}/g, '')  // Remove exclamation marks
-      .replace(/\{!count\}/g, Math.min(count, 10));
+    const processed = selectedText.replace(/\{count\}/g, count);
 
     // Split into two parts using |: subtitle|title
     const parts = processed.split('|');
@@ -179,16 +176,6 @@
   const currentCount = getCount() + 1;
   setCount(currentCount);
 
-
-  function replacePlaceholders(template, count) {
-    const exclamations = '!'.repeat(Math.min(count, 10));
-    const exclamationCount = Math.min(count, 10);
-
-    return template
-      .replace(/\{count\}/g, count)
-      .replace(/\{!\}/g, exclamations)
-      .replace(/\{!count\}/g, exclamationCount);
-  }
 
   // Check if combo trigger is activated (higher priority)
   if (currentCount % comboTrigger === 0) {
