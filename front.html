@@ -258,33 +258,91 @@
     await setValue('omt_count', count.toString());
   }
 
-  // Trigger count when front loads (indicates starting to learn new card)
-  const currentCount = await getCount() + 1;
-  await setCount(currentCount);
-
-  // Debug mode: Display counter (controlled by back.html debugMode setting)
-  var debugModeEnabled = parseInt(await getConfig('mneme_debug_mode', '0'));
-  if (debugModeEnabled === 1) {
-    var debugCounter = document.getElementById('debug-counter');
-    if (debugCounter) {
-      // 🔒 = anki-storage (AnkiDroid full persistence)
-      // 📦 = sessionStorage (iOS/Desktop session persistence)
-      var storageIndicator = storageType === 'anki-storage' ? '🔒' : '📦';
-      debugCounter.textContent = currentCount + ' ' + storageIndicator + ' ' + storageInfo;
-      debugCounter.style.display = 'inline';
-      debugCounter.style.fontSize = '0.3em';
-      debugCounter.style.color = 'var(--text-secondary, #999)';
-      debugCounter.style.fontWeight = 'normal';
-      debugCounter.style.opacity = '0.6';
-      debugCounter.style.marginLeft = '0.5em';
+  // ===== Deduplication: Track last 4 unique words =====
+  async function getRecentWords() {
+    const wordsJson = await getValue('omt_recent_words', '[]');
+    try {
+      return JSON.parse(wordsJson);
+    } catch (e) {
+      return [];
     }
   }
 
-  // Check if combo trigger is activated (higher priority)
-  if (currentCount % comboTrigger === 0) {
-    showCenterPopup(comboHitMessages, true, currentCount);
-  } else if (currentCount % quickTrigger === 0) {
-    showCenterPopup(quickHitMessages, false, currentCount);
+  async function isRecentWord(word) {
+    const recentWords = await getRecentWords();
+    return recentWords.indexOf(word) !== -1;
+  }
+
+  async function addRecentWord(word) {
+    let recentWords = await getRecentWords();
+
+    // Remove word if already exists (to maintain uniqueness)
+    const index = recentWords.indexOf(word);
+    if (index !== -1) {
+      recentWords.splice(index, 1);
+    }
+
+    // Add new word to the end
+    recentWords.push(word);
+
+    // Keep only last 4 unique words
+    if (recentWords.length > 4) {
+      recentWords.shift();
+    }
+
+    await setValue('omt_recent_words', JSON.stringify(recentWords));
+  }
+
+  // Get current word from template field
+  const currentWord = '{{Word}}';
+
+  // Trigger count only if this is a new word (not recently seen)
+  if (!await isRecentWord(currentWord)) {
+    const currentCount = await getCount() + 1;
+    await setCount(currentCount);
+    await addRecentWord(currentWord);
+
+    // Debug mode: Display counter (controlled by back.html debugMode setting)
+    var debugModeEnabled = parseInt(await getConfig('mneme_debug_mode', '0'));
+    if (debugModeEnabled === 1) {
+      var debugCounter = document.getElementById('debug-counter');
+      if (debugCounter) {
+        // 🔒 = anki-storage (AnkiDroid full persistence)
+        // 📦 = sessionStorage (iOS/Desktop session persistence)
+        var storageIndicator = storageType === 'anki-storage' ? '🔒' : '📦';
+        debugCounter.textContent = currentCount + ' ' + storageIndicator + ' ' + storageInfo;
+        debugCounter.style.display = 'inline';
+        debugCounter.style.fontSize = '0.3em';
+        debugCounter.style.color = 'var(--text-secondary, #999)';
+        debugCounter.style.fontWeight = 'normal';
+        debugCounter.style.opacity = '0.6';
+        debugCounter.style.marginLeft = '0.5em';
+      }
+    }
+
+    // Check if combo trigger is activated (higher priority)
+    if (currentCount % comboTrigger === 0) {
+      showCenterPopup(comboHitMessages, true, currentCount);
+    } else if (currentCount % quickTrigger === 0) {
+      showCenterPopup(quickHitMessages, false, currentCount);
+    }
+  } else {
+    // Debug mode: Show skipped message for duplicate word
+    var debugModeEnabled = parseInt(await getConfig('mneme_debug_mode', '0'));
+    if (debugModeEnabled === 1) {
+      var debugCounter = document.getElementById('debug-counter');
+      if (debugCounter) {
+        const currentCount = await getCount();
+        var storageIndicator = storageType === 'anki-storage' ? '🔒' : '📦';
+        debugCounter.textContent = currentCount + ' [SKIP] ' + storageIndicator;
+        debugCounter.style.display = 'inline';
+        debugCounter.style.fontSize = '0.3em';
+        debugCounter.style.color = 'var(--text-secondary, #999)';
+        debugCounter.style.fontWeight = 'normal';
+        debugCounter.style.opacity = '0.6';
+        debugCounter.style.marginLeft = '0.5em';
+      }
+    }
   }
 })();
 </script>
