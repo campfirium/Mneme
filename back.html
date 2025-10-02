@@ -26,10 +26,6 @@ var interruptible = 1;
 // 1 = Enabled
 var hitMotivation = 1;
 
-// ===== Debug Mode =====
-// Shows hit counter on the card for debugging
-// 0 = Disabled (production mode)
-// 1 = Enabled (show counter on word line)
 var debugMode = 0;
 
 // ===== Hit Settings =====
@@ -38,8 +34,7 @@ var quickHit = [10, 1500, 50, 40];   // Show after 10 hits, 1.5s duration, 50% h
 var comboHit = [50, 3000, 50, 50];   // Show after 50 hits, 3s duration, 50% height, 50px base font
 
 // ===== Hit Messages =====
-// Array for random selection, use | inside each item for hierarchy
-// Format: "subtitle|title" - subtitle is small/gray, title is large/main
+// Custom messages shown at intervals, randomly selected. Use "|" to separate subtitle and title
 var quickHitMessages = [
   "NICE|{count}",
   "GOOD|{count}",
