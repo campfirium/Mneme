@@ -22,19 +22,20 @@
   var ua = navigator.userAgent;
   var isAnkiDroid = ua.indexOf('AnkiDroid') !== -1;
   var isAnkiMobile = ua.indexOf('AnkiMobile') !== -1;
+  var isAndroid = /Android/i.test(ua);
   var isMobile = isAnkiDroid || isAnkiMobile || /Mobile|Android|iPhone|iPad/i.test(ua);
 
   var storage = localStorage; // default
   var storageType = 'localStorage';
 
-  // Show first 20 chars of UA for debugging
-  var uaShort = ua.substring(0, 30);
-  var storageInfo = 'UA:' + uaShort + '... M:' + (isMobile ? 'Y' : 'N') + ' LIB:' + (typeof AnkiStorage !== 'undefined' ? 'Y' : 'N');
+  // Show UA for debugging
+  var uaShort = ua.substring(0, 60);
+  var storageInfo = 'UA:' + uaShort + '... AND:' + (isAndroid ? 'Y' : 'N') + ' M:' + (isMobile ? 'Y' : 'N') + ' LIB:' + (typeof AnkiStorage !== 'undefined' ? 'Y' : 'N');
 
   // Platform-specific storage strategy:
-  // - AnkiDroid: anki-storage (persistent across app restarts)
+  // - Android with anki-storage: use anki-storage (persistent across app restarts)
   // - iOS/Desktop: sessionStorage (persistent during study session)
-  if (isAnkiDroid && typeof AnkiStorage !== 'undefined') {
+  if (isAndroid && typeof AnkiStorage !== 'undefined') {
     // AnkiDroid: use anki-storage for full persistence
     try {
       var as = await AnkiStorage.getAnkiStorage();
@@ -76,12 +77,31 @@
     }
   }
 
-  // Read configuration from localStorage (set by back.html)
-  var hitMotivation = parseInt(await getValue('mneme_hit_motivation', '1'));
-  var quickHit = JSON.parse(await getValue('mneme_quick_hit', '[10,1500,50,40]'));
-  var comboHit = JSON.parse(await getValue('mneme_combo_hit', '[50,3000,50,50]'));
-  var quickHitMessages = JSON.parse(await getValue('mneme_quick_hit_messages', '["NICE WORK|{count}"]'));
-  var comboHitMessages = JSON.parse(await getValue('mneme_combo_hit_messages', '["NICE WORK|{count}"]'));
+  // Read configuration from storage
+  // AnkiDroid: use anki-storage for config (localStorage isolated between front/back)
+  // Desktop/iOS: use localStorage for config (shared between front/back)
+  var configStorage = (storageType === 'anki-storage') ? storage : localStorage;
+
+  async function getConfig(key, defaultVal) {
+    if (storageType === 'anki-storage') {
+      // Android: async API
+      try {
+        var val = await configStorage.getItem(key);
+        return val || defaultVal;
+      } catch (e) {
+        return configStorage.getItem(key) || defaultVal;
+      }
+    } else {
+      // Desktop/iOS: sync API
+      return configStorage.getItem(key) || defaultVal;
+    }
+  }
+
+  var hitMotivation = parseInt(await getConfig('mneme_hit_motivation', '1'));
+  var quickHit = JSON.parse(await getConfig('mneme_quick_hit', '[10,1500,50,40]'));
+  var comboHit = JSON.parse(await getConfig('mneme_combo_hit', '[50,3000,50,50]'));
+  var quickHitMessages = JSON.parse(await getConfig('mneme_quick_hit_messages', '["NICE WORK|{count}"]'));
+  var comboHitMessages = JSON.parse(await getConfig('mneme_combo_hit_messages', '["NICE WORK|{count}"]'));
 
   var quickTrigger = quickHit[0];
   var quickDuration = quickHit[1];
@@ -243,8 +263,12 @@
   await setCount(currentCount);
 
   // Debug mode: Display counter (controlled by back.html debugMode setting)
-  var debugModeEnabled = parseInt(await getValue('mneme_debug_mode', '0'));
-  if (debugModeEnabled === 1) {
+  var debugModeEnabled = parseInt(await getConfig('mneme_debug_mode', '0'));
+
+  // TEMP: Force show debug for testing - remove after fixing
+  var forceDebug = true;
+
+  if (debugModeEnabled === 1 || forceDebug) {
     var debugCounter = document.getElementById('debug-counter');
     if (debugCounter) {
       // 🔒 = anki-storage (AnkiDroid full persistence)

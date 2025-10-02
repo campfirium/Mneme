@@ -54,6 +54,7 @@ var comboHitMessages = [
 
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/anki-storage@latest/dist/anki-storage.umd.js"></script>
 
 <div class="box" id="card-box">
   <div class="top-fixed">
@@ -90,14 +91,45 @@ var comboHitMessages = [
 
 
 <script>
-(function() {
-  // Back side uses simple localStorage for config only
-  localStorage.setItem('mneme_hit_motivation', hitMotivation.toString());
-  localStorage.setItem('mneme_debug_mode', debugMode.toString());
-  localStorage.setItem('mneme_quick_hit', JSON.stringify(quickHit));
-  localStorage.setItem('mneme_combo_hit', JSON.stringify(comboHit));
-  localStorage.setItem('mneme_quick_hit_messages', JSON.stringify(quickHitMessages));
-  localStorage.setItem('mneme_combo_hit_messages', JSON.stringify(comboHitMessages));
+(async function() {
+  // Wait for AnkiStorage to load on Android
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  // Detect platform
+  var ua = navigator.userAgent;
+  var isAndroid = /Android/i.test(ua);
+
+  // Choose config storage based on platform
+  // Android with anki-storage: use anki-storage (localStorage is isolated between front/back)
+  // Desktop/iOS: use localStorage (shared between front/back)
+  var configStorage = localStorage;
+
+  if (isAndroid && typeof AnkiStorage !== 'undefined') {
+    try {
+      var as = await AnkiStorage.getAnkiStorage();
+      configStorage = as.localStorage;
+    } catch (e) {
+      // Fallback to localStorage if anki-storage fails
+      configStorage = localStorage;
+    }
+  }
+
+  // Helper to set config (handles both sync and async)
+  async function setConfig(key, val) {
+    try {
+      await configStorage.setItem(key, val);
+    } catch (e) {
+      configStorage.setItem(key, val);
+    }
+  }
+
+  // Save configuration
+  await setConfig('mneme_hit_motivation', hitMotivation.toString());
+  await setConfig('mneme_debug_mode', debugMode.toString());
+  await setConfig('mneme_quick_hit', JSON.stringify(quickHit));
+  await setConfig('mneme_combo_hit', JSON.stringify(comboHit));
+  await setConfig('mneme_quick_hit_messages', JSON.stringify(quickHitMessages));
+  await setConfig('mneme_combo_hit_messages', JSON.stringify(comboHitMessages));
 
   var soundDurText = '{{Sound_Dur}}';
   var soundExampleDurText = '{{Sound_Example_Dur}}';
