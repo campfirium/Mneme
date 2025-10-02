@@ -264,11 +264,7 @@
 
   // Debug mode: Display counter (controlled by back.html debugMode setting)
   var debugModeEnabled = parseInt(await getConfig('mneme_debug_mode', '0'));
-
-  // TEMP: Force show debug for testing - remove after fixing
-  var forceDebug = true;
-
-  if (debugModeEnabled === 1 || forceDebug) {
+  if (debugModeEnabled === 1) {
     var debugCounter = document.getElementById('debug-counter');
     if (debugCounter) {
       // 🔒 = anki-storage (AnkiDroid full persistence)
