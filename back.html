@@ -49,7 +49,7 @@ var comboHitMessages = [
 
 </script>
 
-<script src="anki-storage.umd.js"></script>
+<script src="anki-storage.umd.js" onload="window.ankiStorageLoaded = true"></script>
 
 <div class="box" id="card-box">
   <div class="top-fixed">
@@ -87,12 +87,30 @@ var comboHitMessages = [
 
 <script>
 (async function() {
-  // Wait for AnkiStorage to load on Android
-  await new Promise(resolve => setTimeout(resolve, 100));
+  function sleep(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+  }
+
+  async function waitForAnkiStorage(timeoutMs) {
+    var elapsed = 0;
+    var interval = 100;
+    while (elapsed < timeoutMs) {
+      if (window.ankiStorageLoaded === true || typeof AnkiStorage !== 'undefined') {
+        return true;
+      }
+      await sleep(interval);
+      elapsed += interval;
+    }
+    return window.ankiStorageLoaded === true || typeof AnkiStorage !== 'undefined';
+  }
 
   // Detect platform
   var ua = navigator.userAgent;
   var isAndroid = /Android/i.test(ua);
+
+  if (isAndroid) {
+    await waitForAnkiStorage(2000);
+  }
 
   // Choose config storage based on platform
   // Android with anki-storage: use anki-storage (localStorage is isolated between front/back)

@@ -10,13 +10,27 @@
   </div>
 </div>
 
-<script src="anki-storage.umd.js" onload="window.ankiStorageLoaded=true"></script>
+<script src="anki-storage.umd.js" onload="window.ankiStorageLoaded = true"></script>
 
 <script>
 // ===== OneMoreTurn MVP =====
 (async function() {
-  // Wait a bit for AnkiStorage to load
-  await new Promise(resolve => setTimeout(resolve, 100));
+  function sleep(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+  }
+
+  async function waitForAnkiStorage(timeoutMs) {
+    var elapsed = 0;
+    var interval = 100;
+    while (elapsed < timeoutMs) {
+      if (window.ankiStorageLoaded === true || typeof AnkiStorage !== 'undefined') {
+        return true;
+      }
+      await sleep(interval);
+      elapsed += interval;
+    }
+    return window.ankiStorageLoaded === true || typeof AnkiStorage !== 'undefined';
+  }
 
   // Detect platform and choose storage
   var ua = navigator.userAgent;
@@ -24,6 +38,10 @@
   var isAnkiMobile = ua.indexOf('AnkiMobile') !== -1;
   var isAndroid = /Android/i.test(ua);
   var isMobile = isAnkiDroid || isAnkiMobile || /Mobile|Android|iPhone|iPad/i.test(ua);
+
+  if (isAndroid) {
+    await waitForAnkiStorage(2000);
+  }
 
   var storage = localStorage; // default
   var storageType = 'localStorage';
