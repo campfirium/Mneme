@@ -18,9 +18,12 @@
  * -----------------------------------------------------------------
  */
 
- @font-face {
-  font-family: 'Noto Sans IPA Local';
-  src: url('NotoSans-VariableFont_wdth,wght.ttf') format('truetype');
+@font-face {
+  font-family: 'Noto Sans';
+  src:
+    local('Noto Sans'),
+    local('Noto Sans Regular'),
+    url('NotoSans-VariableFont_wdth,wght.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -70,7 +73,7 @@ html {
 
 /* Base Layout */
 body {
-  background: var(--page-bg);
+  background: var(--page-bg, inherit);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -109,7 +112,7 @@ body {
 
 .phonetic {
   color: var(--text-secondary);
-  font-family: 'Noto Sans IPA Local', sans-serif;
+  font-family: 'Noto Sans', sans-serif;
   margin-bottom: 6px;
   font-weight: 400;
   transition: color 0.3s ease;
