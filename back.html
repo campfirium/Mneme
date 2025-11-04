@@ -108,58 +108,22 @@ var comboHitMessages = [
   var ua = navigator.userAgent;
   var isAndroid = /Android/i.test(ua);
 
-  if (isAndroid) {
-    await waitForAnkiStorage(2000);
-  }
+  var cardBox = document.getElementById('card-box');
+  var progressBar = document.getElementById('progress-divider');
+  var delayedElements = document.querySelectorAll('.delayed-content');
 
-  // Choose config storage based on platform
-  // Android with anki-storage: use anki-storage (localStorage is isolated between front/back)
-  // Desktop/iOS: use localStorage (shared between front/back)
-  var configStorage = localStorage;
-
-  if (isAndroid && typeof AnkiStorage !== 'undefined') {
-    try {
-      var as = await AnkiStorage.getAnkiStorage();
-      configStorage = as.localStorage;
-    } catch (e) {
-      // Fallback to localStorage if anki-storage fails
-      configStorage = localStorage;
+  if (cardBox) {
+    cardBox.classList.add('translation-mode-' + translationMode);
+    if (interruptible === 1) {
+      cardBox.classList.add('interruptible-mode');
     }
   }
-
-  // Helper to set config (handles both sync and async)
-  async function setConfig(key, val) {
-    try {
-      await configStorage.setItem(key, val);
-    } catch (e) {
-      configStorage.setItem(key, val);
-    }
-  }
-
-  // Save configuration
-  await setConfig('mneme_hit_motivation', hitMotivation.toString());
-  await setConfig('mneme_debug_mode', debugMode.toString());
-  await setConfig('mneme_quick_hit', JSON.stringify(quickHit));
-  await setConfig('mneme_combo_hit', JSON.stringify(comboHit));
-  await setConfig('mneme_quick_hit_messages', JSON.stringify(quickHitMessages));
-  await setConfig('mneme_combo_hit_messages', JSON.stringify(comboHitMessages));
 
   var soundDurText = '{{Sound_Dur}}';
   var soundExampleDurText = '{{Sound_Example_Dur}}';
   var soundDur = parseFloat(soundDurText) || 0;
   var soundExampleDur = parseFloat(soundExampleDurText) || 0;
   var totalDelay = (soundDur + soundExampleDur) * delayFactor;
-  
-  var cardBox = document.getElementById('card-box');
-  var progressBar = document.getElementById('progress-divider');
-  var delayedElements = document.querySelectorAll('.delayed-content');
-  
-  cardBox.classList.add('translation-mode-' + translationMode);
-
-  if (interruptible === 1) {
-    cardBox.classList.add('interruptible-mode');
-  }
-
   var animationDuration = totalDelay > 0 ? totalDelay : 3;
   var contentTimeout;
   var isRevealed = false;
@@ -178,6 +142,7 @@ var comboHitMessages = [
   }
 
   function handleClick(event) {
+    if (!cardBox) return;
     if (interruptible === 1 && !isRevealed) {
       var rect = cardBox.getBoundingClientRect();
       var centerX = rect.left + rect.width / 2;
@@ -195,31 +160,69 @@ var comboHitMessages = [
     }
   }
 
-  if (interruptible === 1) {
+  if (interruptible === 1 && cardBox) {
     cardBox.addEventListener('click', handleClick);
     cardBox.addEventListener('touchend', handleClick);
   }
 
   if (delayFactor === 0) {
     revealContent();
-    return;
-  }
+  } else {
+    if (progressBar) {
+      progressBar.style.transitionDuration = animationDuration + 's';
+      
+      setTimeout(function() {
+        if (!isRevealed) {
+          progressBar.classList.add('animating');
+        }
+      }, 20);
+    }
 
-  if (progressBar) {
-    progressBar.style.transitionDuration = animationDuration + 's';
+    var contentDelay = animationDuration * 1000;
     
-    setTimeout(function() {
-      if (!isRevealed) {
-        progressBar.classList.add('animating');
-      }
-    }, 20);
+    contentTimeout = setTimeout(function() {
+      revealContent();
+    }, contentDelay);
   }
 
-  var contentDelay = animationDuration * 1000;
-  
-  contentTimeout = setTimeout(function() {
-    revealContent();
-  }, contentDelay);
+  initializeConfig();
+
+  async function initializeConfig() {
+    if (isAndroid) {
+      await waitForAnkiStorage(2000);
+    }
+
+    // Choose config storage based on platform
+    // Android with anki-storage: use anki-storage (localStorage is isolated between front/back)
+    // Desktop/iOS: use localStorage (shared between front/back)
+    var configStorage = localStorage;
+
+    if (isAndroid && typeof AnkiStorage !== 'undefined') {
+      try {
+        var as = await AnkiStorage.getAnkiStorage();
+        configStorage = as.localStorage;
+      } catch (e) {
+        // Fallback to localStorage if anki-storage fails
+        configStorage = localStorage;
+      }
+    }
+
+    // Helper to set config (handles both sync and async)
+    async function setConfig(key, val) {
+      try {
+        await configStorage.setItem(key, val);
+      } catch (e) {
+        configStorage.setItem(key, val);
+      }
+    }
+
+    await setConfig('mneme_hit_motivation', hitMotivation.toString());
+    await setConfig('mneme_debug_mode', debugMode.toString());
+    await setConfig('mneme_quick_hit', JSON.stringify(quickHit));
+    await setConfig('mneme_combo_hit', JSON.stringify(comboHit));
+    await setConfig('mneme_quick_hit_messages', JSON.stringify(quickHitMessages));
+    await setConfig('mneme_combo_hit_messages', JSON.stringify(comboHitMessages));
+  }
 })();
 </script>
 
