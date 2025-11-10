@@ -39,12 +39,50 @@
   var isAndroid = /Android/i.test(ua);
   var isMobile = isAnkiDroid || isAnkiMobile || /Mobile|Android|iPhone|iPad/i.test(ua);
 
+  var storage;
+  var storageType;
   if (isAndroid) {
-    await waitForAnkiStorage(2000);
+    storage = window.localStorage;
+    storageType = 'localStorage';
+  } else {
+    storage = window.sessionStorage;
+    storageType = 'sessionStorage';
   }
 
-  var storage = localStorage; // default
-  var storageType = 'localStorage';
+  // Local counter state (base + pending increments)
+  var LOCAL_COUNT_KEY = 'omt_count';
+  var REMOTE_PENDING_KEY = 'omt_remote_pending';
+  var REMOTE_SYNCED_KEY = 'omt_remote_synced';
+  var sessionBase = 0;
+  var pendingDelta = 0;
+  var currentTotal = 0;
+
+  function loadStoredCount() {
+    var stored = 0;
+    try {
+      stored = parseInt(storage.getItem(LOCAL_COUNT_KEY) || '0', 10) || 0;
+    } catch (e) {
+      stored = 0;
+    }
+    sessionBase = stored;
+    pendingDelta = 0;
+    currentTotal = stored;
+  }
+
+  loadStoredCount();
+
+  function updateDebugDisplay(line) {
+    if (debugModeSetting !== 1) return;
+    var debugCounter = document.getElementById('debug-counter');
+    if (!debugCounter) return;
+    debugCounter.textContent = line;
+    debugCounter.style.display = 'inline';
+    debugCounter.style.fontSize = '0.3em';
+    debugCounter.style.color = 'var(--text-secondary, #999)';
+    debugCounter.style.fontWeight = 'normal';
+    debugCounter.style.opacity = '0.6';
+    debugCounter.style.marginLeft = '0.5em';
+  }
 
   // Show UA for debugging
   var uaShort = ua.substring(0, 60);
@@ -53,31 +91,20 @@
   // Platform-specific storage strategy:
   // - Android with anki-storage: use anki-storage (persistent across app restarts)
   // - iOS/Desktop: sessionStorage (persistent during study session)
-  if (isAndroid && typeof AnkiStorage !== 'undefined') {
-    // AnkiDroid: use anki-storage for full persistence
-    try {
-      var as = await AnkiStorage.getAnkiStorage();
-      storage = {
-        getItem: function(key) { return as.localStorage.getItem(key); },
-        setItem: function(key, val) { return as.localStorage.setItem(key, val); }
-      };
-      storageType = 'anki-storage';
-      storageInfo += ' ST:AS';
-    } catch (e) {
-      storageInfo += ' ST:SS ERR:' + e.message.substring(0, 20);
-      // Fallback to sessionStorage
-      storage = sessionStorage;
-      storageType = 'sessionStorage';
-    }
-  } else {
-    // iOS and Desktop: use sessionStorage (session-level persistence)
-    storage = sessionStorage;
-    storageType = 'sessionStorage';
-    storageInfo += ' ST:SS';
+  var remoteStorageApi = null;
+  var remoteReady = false;
+  var remoteRetryHandle = null;
+
+  if (isAndroid) {
+    initRemoteSync();
   }
+  storageInfo += ' ST:SS';
 
   // Helper to get value (handles both sync and async)
   async function getValue(key, defaultVal) {
+    if (key === LOCAL_COUNT_KEY) {
+      return currentTotal.toString();
+    }
     try {
       var val = await storage.getItem(key);
       return val || defaultVal;
@@ -88,17 +115,26 @@
 
   // Helper to set value (handles both sync and async)
   async function setValue(key, val) {
-    try {
-      await storage.setItem(key, val);
-    } catch (e) {
-      storage.setItem(key, val);
+    if (key === LOCAL_COUNT_KEY) {
+      var parsed = parseInt(val, 10);
+      if (isNaN(parsed)) parsed = 0;
+      applyLocalCount(parsed, false);
+      persistLocalCount();
+      if (isAndroid) {
+        queueRemoteCount(parsed);
+      }
+      return;
     }
+    try {
+      storage.setItem(key, val);
+    } catch (e) {}
   }
 
   // Read configuration from storage
   // AnkiDroid: use anki-storage for config (localStorage isolated between front/back)
   // Desktop/iOS: use localStorage for config (shared between front/back)
   var configStorage = (storageType === 'anki-storage') ? storage : localStorage;
+  var debugModeSetting = parseInt(await getConfig('mneme_debug_mode', '0'));
 
   async function getConfig(key, defaultVal) {
     if (storageType === 'anki-storage') {
@@ -259,21 +295,32 @@
     const lastResetKey = await getValue('omt_last_reset', '');
 
     if (currentResetKey !== lastResetKey) {
-      // New day (after 4 AM), reset counter
-      await setValue('omt_count', '0');
+      applyLocalCount(0, false);
+      sessionBase = 0;
+      pendingDelta = 0;
+      currentTotal = 0;
+      persistLocalCount();
+      if (isAndroid) {
+        queueRemoteCount(0);
+      }
       await setValue('omt_last_reset', currentResetKey);
-      return 0;
     }
 
-    return parseInt(await getValue('omt_count', '0'), 10);
+    return currentTotal;
   }
 
   async function getCount() {
-    return await checkAndResetCount();
+    await checkAndResetCount();
+    return currentTotal;
   }
 
   async function setCount(count) {
-    await setValue('omt_count', count.toString());
+    applyLocalCount(count, false);
+    currentTotal = count;
+    persistLocalCount();
+    if (isAndroid) {
+      queueRemoteCount(count);
+    }
   }
 
   // ===== Deduplication: Track last 4 unique words =====
@@ -311,6 +358,20 @@
     await setValue('omt_recent_words', JSON.stringify(recentWords));
   }
 
+  // Initialize count before processing
+  await checkAndResetCount();
+  if (debugModeSetting === 1) {
+    var initialIndicator = remoteReady ? "🔒" : "📦";
+    updateDebugDisplay(currentTotal + " " + initialIndicator + " " + storageInfo);
+  }
+
+  // Initialize count before processing
+  await checkAndResetCount();
+  if (debugModeSetting === 1) {
+    var initialIndicator = remoteReady ? '🔒' : '📦';
+    updateDebugDisplay(currentTotal + ' ' + initialIndicator + ' ' + storageInfo);
+  }
+
   // Get current word from template field
   const currentWord = '{{Word}}';
 
@@ -321,21 +382,9 @@
     await addRecentWord(currentWord);
 
     // Debug mode: Display counter (controlled by back.html debugMode setting)
-    var debugModeEnabled = parseInt(await getConfig('mneme_debug_mode', '0'));
-    if (debugModeEnabled === 1) {
-      var debugCounter = document.getElementById('debug-counter');
-      if (debugCounter) {
-        // 🔒 = anki-storage (AnkiDroid full persistence)
-        // 📦 = sessionStorage (iOS/Desktop session persistence)
-        var storageIndicator = storageType === 'anki-storage' ? '🔒' : '📦';
-        debugCounter.textContent = currentCount + ' ' + storageIndicator + ' ' + storageInfo;
-        debugCounter.style.display = 'inline';
-        debugCounter.style.fontSize = '0.3em';
-        debugCounter.style.color = 'var(--text-secondary, #999)';
-        debugCounter.style.fontWeight = 'normal';
-        debugCounter.style.opacity = '0.6';
-        debugCounter.style.marginLeft = '0.5em';
-      }
+    if (debugModeSetting === 1) {
+      var storageIndicator = remoteReady ? '🔒' : '📦';
+      updateDebugDisplay(currentCount + ' ' + storageIndicator + ' ' + storageInfo);
     }
 
     // Check if combo trigger is activated (higher priority)
@@ -346,21 +395,11 @@
     }
   } else {
     // Debug mode: Show skipped message for duplicate word
-    var debugModeEnabled = parseInt(await getConfig('mneme_debug_mode', '0'));
-    if (debugModeEnabled === 1) {
-      var debugCounter = document.getElementById('debug-counter');
-      if (debugCounter) {
-        const currentCount = await getCount();
-        var storageIndicator = storageType === 'anki-storage' ? '🔒' : '📦';
-        debugCounter.textContent = currentCount + ' [SKIP] ' + storageIndicator;
-        debugCounter.style.display = 'inline';
-        debugCounter.style.fontSize = '0.3em';
-        debugCounter.style.color = 'var(--text-secondary, #999)';
-        debugCounter.style.fontWeight = 'normal';
-        debugCounter.style.opacity = '0.6';
-        debugCounter.style.marginLeft = '0.5em';
-      }
+    if (debugModeSetting === 1) {
+      const currentCount = await getCount();
+      var storageIndicator = remoteReady ? '🔒' : '📦';
+      updateDebugDisplay(currentCount + ' [SKIP] ' + storageIndicator);
     }
   }
-})();
+  })();
 </script>
