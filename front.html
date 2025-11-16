@@ -313,8 +313,7 @@
   var motivationEnabled = hitMotivation === 1;
 
   if (isAndroid) {
-    appendLog('Anki 计数：延迟连接（1.5s）');
-    setTimeout(initRemoteBridge, 1500);
+    setTimeout(initRemoteBridge, 0);
   }
 
   function getRandomText(textArray) {
