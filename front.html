@@ -14,14 +14,25 @@
   </div>
 </div>
 
-<script src="anki-storage.umd.js" onload="window.ankiStorageLoaded = true"></script>
-
 <script>
 // ===== OneMoreTurn MVP =====
 (async function() {
   function sleep(ms) {
     return new Promise(function(resolve) { setTimeout(resolve, ms); });
   }
+
+  function ensureAnkiStorageBridge() {
+    if (window.mnemeAnkiStorageLoading) return;
+    window.mnemeAnkiStorageLoading = true;
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/anki-storage@latest/dist/anki-storage.umd.js';
+    script.async = true;
+    script.onload = function() { window.ankiStorageLoaded = true; };
+    script.onerror = function() { window.ankiStorageLoaded = false; window.mnemeAnkiStorageLoading = false; };
+    document.head.appendChild(script);
+  }
+
+  ensureAnkiStorageBridge();
 
   async function waitForAnkiStorage(timeoutMs) {
     var elapsed = 0;
@@ -232,10 +243,14 @@
   }
 
   async function initRemoteBridge() {
-    if (!isAndroid) return;
+    if (!isAndroid) {
+      appendLog('Anki 计数：非 Android 平台，跳过');
+      return;
+    }
+    appendLog('Anki 计数：开始连接 …');
     var loaded = await waitForAnkiStorage(1500);
     if (!loaded || typeof AnkiStorage === 'undefined') {
-      appendLog('anki-storage 桥接文件未就绪');
+      appendLog('Anki 计数：桥接未就绪，稍后重试');
       scheduleRemoteRetry();
       return;
     }
@@ -243,13 +258,13 @@
       var ankiInstance = await AnkiStorage.getAnkiStorage();
       remoteStorage = ankiInstance.localStorage;
       remoteReady = true;
-      appendLog('anki-storage 已连接');
+      appendLog('Anki 计数：连接成功');
       await syncFromRemote();
       flushRemoteQueue();
       updateStorageSummary();
     } catch (err) {
       remoteReady = false;
-      appendLog('anki-storage 连接失败: ' + (err && err.message ? err.message : 'unknown'));
+      appendLog('Anki 计数：连接失败 - ' + (err && err.message ? err.message : 'unknown'));
       scheduleRemoteRetry();
     }
   }
@@ -279,7 +294,8 @@
   }
 
   updateStorageSummary();
-  appendLog('初始化完成');
+  appendLog('Session 计数初始化 -> ' + currentTotal);
+  appendLog(isAndroid ? 'Anki 计数：等待连接' : 'Anki 计数：不适用');
   var hitMotivation = parseInt(await getConfig('mneme_hit_motivation', '1'), 10);
   var quickHit = JSON.parse(await getConfig('mneme_quick_hit', '[10,1500,50,40]'));
   var comboHit = JSON.parse(await getConfig('mneme_combo_hit', '[50,3000,50,50]'));
@@ -294,10 +310,12 @@
   var comboDuration = comboHit[1];
   var comboPosition = comboHit[2];
   var comboFontSize = comboHit[3] || 50;
+  var motivationEnabled = hitMotivation === 1;
 
-  if (!hitMotivation) return;
-
-  await initRemoteBridge();
+  if (isAndroid) {
+    appendLog('Anki 计数：延迟连接（1.5s）');
+    setTimeout(initRemoteBridge, 1500);
+  }
 
   function getRandomText(textArray) {
     if (!Array.isArray(textArray) || textArray.length === 0) {
@@ -495,11 +513,12 @@
 
     appendLog('Session 计数更新 -> ' + currentCount);
 
-    // Check if combo trigger is activated (higher priority)
-    if (currentCount % comboTrigger === 0) {
-      showCenterPopup(comboHitMessages, true, currentCount);
-    } else if (currentCount % quickTrigger === 0) {
-      showCenterPopup(quickHitMessages, false, currentCount);
+    if (motivationEnabled) {
+      if (currentCount % comboTrigger === 0) {
+        showCenterPopup(comboHitMessages, true, currentCount);
+      } else if (currentCount % quickTrigger === 0) {
+        showCenterPopup(quickHitMessages, false, currentCount);
+      }
     }
   } else {
     const currentCount = await getCount();

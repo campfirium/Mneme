@@ -49,8 +49,6 @@ var comboHitMessages = [
 
 </script>
 
-<script src="anki-storage.umd.js" onload="window.ankiStorageLoaded = true"></script>
-
 <div class="box" id="card-box">
   <div class="top-fixed">
     <div class="word" id="animated-word" style="display: flex; justify-content: space-between; align-items: baseline;">
@@ -90,6 +88,19 @@ var comboHitMessages = [
   function sleep(ms) {
     return new Promise(function(resolve) { setTimeout(resolve, ms); });
   }
+
+  function ensureAnkiStorageBridge() {
+    if (window.mnemeAnkiStorageLoading) return;
+    window.mnemeAnkiStorageLoading = true;
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/anki-storage@latest/dist/anki-storage.umd.js';
+    script.async = true;
+    script.onload = function() { window.ankiStorageLoaded = true; };
+    script.onerror = function() { window.ankiStorageLoaded = false; window.mnemeAnkiStorageLoading = false; };
+    document.head.appendChild(script);
+  }
+
+  ensureAnkiStorageBridge();
 
   async function waitForAnkiStorage(timeoutMs) {
     var elapsed = 0;
