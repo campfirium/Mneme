@@ -8,6 +8,10 @@
     </div>
     <div class="phonetic transparent">{{IPA}}</div>
   </div>
+  <div id="storage-panel" style="margin-top:1.2em;padding:0.6em 0.4em;border-radius:0.6em;background:rgba(0,0,0,0.04);color:var(--text-secondary,#666);font-size:0.75em;line-height:1.4;min-height:3.2em;display:flex;flex-direction:column;gap:0.4em;">
+    <div id="storage-summary" style="font-weight:600;text-transform:uppercase;letter-spacing:0.05em;"></div>
+    <div id="storage-log" style="display:flex;flex-direction:column;gap:0.2em;font-size:0.7em;color:var(--text-secondary,#888);"></div>
+  </div>
 </div>
 
 <script src="anki-storage.umd.js" onload="window.ankiStorageLoaded = true"></script>
@@ -32,126 +36,251 @@
     return window.ankiStorageLoaded === true || typeof AnkiStorage !== 'undefined';
   }
 
-  // Detect platform and choose storage
   var ua = navigator.userAgent;
   var isAnkiDroid = ua.indexOf('AnkiDroid') !== -1;
-  var isAnkiMobile = ua.indexOf('AnkiMobile') !== -1;
   var isAndroid = /Android/i.test(ua);
-  var isMobile = isAnkiDroid || isAnkiMobile || /Mobile|Android|iPhone|iPad/i.test(ua);
+  var storage = window.sessionStorage;
+  var REMOTE_PENDING_KEY = 'omt_remote_pending';
+  var LOCAL_COUNT_KEY = 'omt_count';
+  var REMOTE_BASELINE_KEY = 'omt_remote_baseline_applied';
+  var currentTotal = loadLocalCount();
+  var hasAppliedRemoteBaseline = storage.getItem(REMOTE_BASELINE_KEY) === '1';
+  var diagnosticsPanel = document.getElementById('storage-panel');
+  var storageSummaryEl = document.getElementById('storage-summary');
+  var storageLogEl = document.getElementById('storage-log');
+  var logEntries = [];
+  var remoteLastKnownCount = null;
 
-  var storage;
-  var storageType;
-  if (isAndroid) {
-    storage = window.localStorage;
-    storageType = 'localStorage';
-  } else {
-    storage = window.sessionStorage;
-    storageType = 'sessionStorage';
+  function updateStorageSummary(note) {
+    if (!diagnosticsPanel || !storageSummaryEl) return;
+    var summaryParts = [];
+    summaryParts.push('Session 📦 ' + currentTotal);
+    if (isAndroid) {
+      var remoteLabel;
+      if (remoteReady) {
+        var remoteText = remoteLastKnownCount !== null ? remoteLastKnownCount : '同步中';
+        remoteLabel = 'Anki 🔒 ' + remoteText;
+      } else {
+        remoteLabel = 'Anki … 未连接';
+      }
+      summaryParts.push(remoteLabel);
+    } else {
+      summaryParts.push('Anki ⛔ 不适用');
+    }
+    if (note) summaryParts.push(note);
+    if (storageSummaryEl) {
+      storageSummaryEl.textContent = summaryParts.join(' | ');
+    }
   }
 
-  // Local counter state (base + pending increments)
-  var LOCAL_COUNT_KEY = 'omt_count';
-  var REMOTE_PENDING_KEY = 'omt_remote_pending';
-  var REMOTE_SYNCED_KEY = 'omt_remote_synced';
-  var sessionBase = 0;
-  var pendingDelta = 0;
-  var currentTotal = 0;
+  function appendLog(message) {
+    if (!storageLogEl) return;
+    var stamp = new Date();
+    var hh = stamp.getHours().toString().padStart(2, '0');
+    var mm = stamp.getMinutes().toString().padStart(2, '0');
+    var ss = stamp.getSeconds().toString().padStart(2, '0');
+    logEntries.push(hh + ':' + mm + ':' + ss + ' · ' + message);
+    if (logEntries.length > 8) {
+      logEntries.shift();
+    }
+    storageLogEl.innerHTML = logEntries.map(function(entry) {
+      return '<div>' + entry + '</div>';
+    }).join('');
+  }
 
-  function loadStoredCount() {
+  var remoteStorage = null;
+  var remoteReady = false;
+  var remoteRetryHandle = null;
+  var remoteQueue = loadRemoteQueue();
+  var remoteSyncInProgress = false;
+
+  function loadLocalCount() {
     var stored = 0;
     try {
       stored = parseInt(storage.getItem(LOCAL_COUNT_KEY) || '0', 10) || 0;
     } catch (e) {
       stored = 0;
     }
-    sessionBase = stored;
-    pendingDelta = 0;
-    currentTotal = stored;
+    return stored;
   }
 
-  loadStoredCount();
-
-  function updateDebugDisplay(line) {
-    if (debugModeSetting !== 1) return;
-    var debugCounter = document.getElementById('debug-counter');
-    if (!debugCounter) return;
-    debugCounter.textContent = line;
-    debugCounter.style.display = 'inline';
-    debugCounter.style.fontSize = '0.3em';
-    debugCounter.style.color = 'var(--text-secondary, #999)';
-    debugCounter.style.fontWeight = 'normal';
-    debugCounter.style.opacity = '0.6';
-    debugCounter.style.marginLeft = '0.5em';
-  }
-
-  // Show UA for debugging
-  var uaShort = ua.substring(0, 60);
-  var storageInfo = 'UA:' + uaShort + '... AND:' + (isAndroid ? 'Y' : 'N') + ' M:' + (isMobile ? 'Y' : 'N') + ' LIB:' + (typeof AnkiStorage !== 'undefined' ? 'Y' : 'N');
-
-  // Platform-specific storage strategy:
-  // - Android with anki-storage: use anki-storage (persistent across app restarts)
-  // - iOS/Desktop: sessionStorage (persistent during study session)
-  var remoteStorageApi = null;
-  var remoteReady = false;
-  var remoteRetryHandle = null;
-
-  if (isAndroid) {
-    initRemoteSync();
-  }
-  storageInfo += ' ST:SS';
-
-  // Helper to get value (handles both sync and async)
-  async function getValue(key, defaultVal) {
-    if (key === LOCAL_COUNT_KEY) {
-      return currentTotal.toString();
-    }
+  function persistLocalCount() {
     try {
-      var val = await storage.getItem(key);
-      return val || defaultVal;
-    } catch (e) {
-      return storage.getItem(key) || defaultVal;
-    }
-  }
-
-  // Helper to set value (handles both sync and async)
-  async function setValue(key, val) {
-    if (key === LOCAL_COUNT_KEY) {
-      var parsed = parseInt(val, 10);
-      if (isNaN(parsed)) parsed = 0;
-      applyLocalCount(parsed, false);
-      persistLocalCount();
-      if (isAndroid) {
-        queueRemoteCount(parsed);
-      }
-      return;
-    }
-    try {
-      storage.setItem(key, val);
+      storage.setItem(LOCAL_COUNT_KEY, currentTotal.toString());
     } catch (e) {}
   }
 
-  // Read configuration from storage
-  // AnkiDroid: use anki-storage for config (localStorage isolated between front/back)
-  // Desktop/iOS: use localStorage for config (shared between front/back)
-  var configStorage = (storageType === 'anki-storage') ? storage : localStorage;
-  var debugModeSetting = parseInt(await getConfig('mneme_debug_mode', '0'));
-
-  async function getConfig(key, defaultVal) {
-    if (storageType === 'anki-storage') {
-      // Android: async API
-      try {
-        var val = await configStorage.getItem(key);
-        return val || defaultVal;
-      } catch (e) {
-        return configStorage.getItem(key) || defaultVal;
-      }
-    } else {
-      // Desktop/iOS: sync API
-      return configStorage.getItem(key) || defaultVal;
+  function loadRemoteQueue() {
+    if (!isAndroid) return {};
+    try {
+      var raw = storage.getItem(REMOTE_PENDING_KEY);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) {
+      return {};
     }
   }
 
-  var hitMotivation = parseInt(await getConfig('mneme_hit_motivation', '1'));
+  function persistRemoteQueue() {
+    if (!isAndroid) return;
+    try {
+      if (!remoteQueue || Object.keys(remoteQueue).length === 0) {
+        storage.removeItem(REMOTE_PENDING_KEY);
+      } else {
+        storage.setItem(REMOTE_PENDING_KEY, JSON.stringify(remoteQueue));
+      }
+    } catch (e) {}
+  }
+
+  function shouldSyncKey(key) {
+    return key === LOCAL_COUNT_KEY || key === 'omt_last_reset' || key === 'omt_recent_words';
+  }
+
+  function queueRemoteUpdate(key, val) {
+    if (!isAndroid) return;
+    if (key === LOCAL_COUNT_KEY && !hasAppliedRemoteBaseline) {
+      return;
+    }
+    remoteQueue[key] = val;
+    persistRemoteQueue();
+    flushRemoteQueue();
+  }
+
+  async function flushRemoteQueue() {
+    if (!remoteReady || remoteSyncInProgress) return;
+    var keys = Object.keys(remoteQueue);
+    if (keys.length === 0) return;
+    remoteSyncInProgress = true;
+    var syncedCount = false;
+    try {
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        var value = remoteQueue[k];
+        try {
+          await remoteStorage.setItem(k, value);
+          if (k === LOCAL_COUNT_KEY) {
+            var parsed = parseInt(value, 10);
+            remoteLastKnownCount = isNaN(parsed) ? remoteLastKnownCount : parsed;
+            syncedCount = true;
+          }
+        } catch (inner) {
+          throw inner;
+        }
+      }
+      remoteQueue = {};
+      persistRemoteQueue();
+      if (syncedCount) {
+        appendLog('已同步 anki-storage 计数 -> ' + (remoteLastKnownCount !== null ? remoteLastKnownCount : '未知'));
+        updateStorageSummary();
+      }
+    } catch (err) {
+      remoteReady = false;
+      scheduleRemoteRetry();
+    } finally {
+      remoteSyncInProgress = false;
+    }
+  }
+
+  function scheduleRemoteRetry() {
+    if (!isAndroid || remoteRetryHandle) return;
+    remoteRetryHandle = setTimeout(async function() {
+      remoteRetryHandle = null;
+      await initRemoteBridge();
+    }, 3000);
+    appendLog('anki-storage 不可用，等待重试');
+    updateStorageSummary('等待 anki-storage');
+  }
+
+  async function syncFromRemote() {
+    if (!remoteReady || !remoteStorage) return;
+    try {
+      var remoteReset = await remoteStorage.getItem('omt_last_reset');
+      if (remoteReset) {
+        storage.setItem('omt_last_reset', remoteReset);
+      }
+      var remoteWords = await remoteStorage.getItem('omt_recent_words');
+      if (remoteWords) {
+        storage.setItem('omt_recent_words', remoteWords);
+      }
+      var remoteCountStr = await remoteStorage.getItem(LOCAL_COUNT_KEY);
+      var remoteCount = parseInt(remoteCountStr || '0', 10);
+      if (isNaN(remoteCount)) remoteCount = 0;
+      remoteLastKnownCount = remoteCount;
+
+      if (!hasAppliedRemoteBaseline) {
+        var localBefore = currentTotal;
+        currentTotal = remoteCount + localBefore;
+        persistLocalCount();
+        storage.setItem(REMOTE_BASELINE_KEY, '1');
+        hasAppliedRemoteBaseline = true;
+        if (currentTotal !== remoteCount) {
+          remoteQueue[LOCAL_COUNT_KEY] = currentTotal.toString();
+          persistRemoteQueue();
+        }
+        appendLog('接收 anki-storage 基线 ' + remoteCount + '，会话累计 -> ' + currentTotal);
+      } else if (remoteCount > currentTotal) {
+        currentTotal = remoteCount;
+        persistLocalCount();
+        appendLog('远端计数覆盖 -> ' + currentTotal);
+      }
+      updateStorageSummary('已同步');
+    } catch (err) {
+      remoteReady = false;
+      scheduleRemoteRetry();
+    }
+  }
+
+  async function initRemoteBridge() {
+    if (!isAndroid) return;
+    var loaded = await waitForAnkiStorage(1500);
+    if (!loaded || typeof AnkiStorage === 'undefined') {
+      appendLog('anki-storage 桥接文件未就绪');
+      scheduleRemoteRetry();
+      return;
+    }
+    try {
+      var ankiInstance = await AnkiStorage.getAnkiStorage();
+      remoteStorage = ankiInstance.localStorage;
+      remoteReady = true;
+      appendLog('anki-storage 已连接');
+      await syncFromRemote();
+      flushRemoteQueue();
+      updateStorageSummary();
+    } catch (err) {
+      remoteReady = false;
+      appendLog('anki-storage 连接失败: ' + (err && err.message ? err.message : 'unknown'));
+      scheduleRemoteRetry();
+    }
+  }
+
+  async function getValue(key, defaultVal) {
+    try {
+      var val = storage.getItem(key);
+      return val === null ? defaultVal : val;
+    } catch (e) {
+      return defaultVal;
+    }
+  }
+
+  async function setValue(key, val) {
+    try {
+      storage.setItem(key, val);
+    } catch (e) {}
+    if (shouldSyncKey(key)) {
+      queueRemoteUpdate(key, val);
+    }
+  }
+
+  var configStorage = localStorage;
+
+  async function getConfig(key, defaultVal) {
+    return configStorage.getItem(key) || defaultVal;
+  }
+
+  updateStorageSummary();
+  appendLog('初始化完成');
+  var hitMotivation = parseInt(await getConfig('mneme_hit_motivation', '1'), 10);
   var quickHit = JSON.parse(await getConfig('mneme_quick_hit', '[10,1500,50,40]'));
   var comboHit = JSON.parse(await getConfig('mneme_combo_hit', '[50,3000,50,50]'));
   var quickHitMessages = JSON.parse(await getConfig('mneme_quick_hit_messages', '["NICE WORK|{count}"]'));
@@ -167,6 +296,8 @@
   var comboFontSize = comboHit[3] || 50;
 
   if (!hitMotivation) return;
+
+  await initRemoteBridge();
 
   function getRandomText(textArray) {
     if (!Array.isArray(textArray) || textArray.length === 0) {
@@ -295,15 +426,10 @@
     const lastResetKey = await getValue('omt_last_reset', '');
 
     if (currentResetKey !== lastResetKey) {
-      applyLocalCount(0, false);
-      sessionBase = 0;
-      pendingDelta = 0;
-      currentTotal = 0;
-      persistLocalCount();
-      if (isAndroid) {
-        queueRemoteCount(0);
-      }
       await setValue('omt_last_reset', currentResetKey);
+      await setCount(0, '每日重置');
+      appendLog('每日重置，计数清零');
+      return 0;
     }
 
     return currentTotal;
@@ -314,12 +440,12 @@
     return currentTotal;
   }
 
-  async function setCount(count) {
-    applyLocalCount(count, false);
+  async function setCount(count, summaryNote) {
     currentTotal = count;
     persistLocalCount();
+    updateStorageSummary(summaryNote);
     if (isAndroid) {
-      queueRemoteCount(count);
+      queueRemoteUpdate(LOCAL_COUNT_KEY, count.toString());
     }
   }
 
@@ -358,34 +484,16 @@
     await setValue('omt_recent_words', JSON.stringify(recentWords));
   }
 
-  // Initialize count before processing
-  await checkAndResetCount();
-  if (debugModeSetting === 1) {
-    var initialIndicator = remoteReady ? "🔒" : "📦";
-    updateDebugDisplay(currentTotal + " " + initialIndicator + " " + storageInfo);
-  }
-
-  // Initialize count before processing
-  await checkAndResetCount();
-  if (debugModeSetting === 1) {
-    var initialIndicator = remoteReady ? '🔒' : '📦';
-    updateDebugDisplay(currentTotal + ' ' + initialIndicator + ' ' + storageInfo);
-  }
-
   // Get current word from template field
   const currentWord = '{{Word}}';
 
   // Trigger count only if this is a new word (not recently seen)
   if (!await isRecentWord(currentWord)) {
     const currentCount = await getCount() + 1;
-    await setCount(currentCount);
+    await setCount(currentCount, 'Session +1');
     await addRecentWord(currentWord);
 
-    // Debug mode: Display counter (controlled by back.html debugMode setting)
-    if (debugModeSetting === 1) {
-      var storageIndicator = remoteReady ? '🔒' : '📦';
-      updateDebugDisplay(currentCount + ' ' + storageIndicator + ' ' + storageInfo);
-    }
+    appendLog('Session 计数更新 -> ' + currentCount);
 
     // Check if combo trigger is activated (higher priority)
     if (currentCount % comboTrigger === 0) {
@@ -394,12 +502,9 @@
       showCenterPopup(quickHitMessages, false, currentCount);
     }
   } else {
-    // Debug mode: Show skipped message for duplicate word
-    if (debugModeSetting === 1) {
-      const currentCount = await getCount();
-      var storageIndicator = remoteReady ? '🔒' : '📦';
-      updateDebugDisplay(currentCount + ' [SKIP] ' + storageIndicator);
-    }
+    const currentCount = await getCount();
+    updateStorageSummary('重复单词');
+    appendLog('重复单词，计数保持 ' + currentCount);
   }
   })();
 </script>
