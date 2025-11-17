@@ -197,16 +197,6 @@ html.ankiweb body {
   transition: background-color 0.3s ease;
 }
 
-.progress-bar {
-  height: 2px;
-  border-radius: 999px;
-  background: #5b5b5b;
-}
-
-.progress-bar.animating {
-  background: #cccccc;
-}
-
 .middle-content {
   overflow: hidden; 
   min-height: 0;
@@ -386,13 +376,19 @@ details summary::-webkit-details-marker {
   width: 0 !important;
   transition-property: width;
   transition-timing-function: linear;
-  height: 2px;
-  border-radius: 999px;
-  background: #5b5b5b;
 }
 
 .progress-bar.animating {
   width: 100% !important;
+}
+
+html.ankiweb .progress-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: #5b5b5b;
+}
+
+html.ankiweb .progress-bar.animating {
   background: #cccccc;
 }
 
