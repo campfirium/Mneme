@@ -288,24 +288,10 @@
   }
 
   async function getConfig(key, defaultVal) {
-    if (isAndroid) {
-      try {
-        var loaded = await waitForAnkiStorage(1500);
-        if (loaded && typeof AnkiStorage !== 'undefined') {
-          var ankiInstance = await AnkiStorage.getAnkiStorage();
-          if (ankiInstance && ankiInstance.localStorage) {
-            var remoteVal = await ankiInstance.localStorage.getItem(key);
-            if (remoteVal !== null && typeof remoteVal !== 'undefined' && remoteVal !== '') {
-              return remoteVal;
-            }
-          }
-        }
-      } catch (e) {}
-    }
     try {
-      var localVal = localStorage.getItem(key);
-      if (localVal !== null && typeof localVal !== 'undefined' && localVal !== '') {
-        return localVal;
+      var val = window.sessionStorage.getItem(key);
+      if (val !== null && typeof val !== 'undefined' && val !== '') {
+        return val;
       }
     } catch (e) {}
     return defaultVal;
