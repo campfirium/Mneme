@@ -14,14 +14,25 @@
   </div>
 </div>
 
-<script src="anki-storage.umd.js" onload="window.ankiStorageLoaded = true"></script>
-
 <script>
 // ===== OneMoreTurn MVP =====
 (async function() {
   function sleep(ms) {
     return new Promise(function(resolve) { setTimeout(resolve, ms); });
   }
+
+  function ensureAnkiStorageBridge() {
+    if (window.mnemeAnkiStorageLoading) return;
+    window.mnemeAnkiStorageLoading = true;
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/anki-storage@latest/dist/anki-storage.umd.js';
+    script.async = true;
+    script.onload = function() { window.ankiStorageLoaded = true; };
+    script.onerror = function() { window.ankiStorageLoaded = false; window.mnemeAnkiStorageLoading = false; };
+    document.head.appendChild(script);
+  }
+
+  ensureAnkiStorageBridge();
 
   async function waitForAnkiStorage(timeoutMs) {
     var elapsed = 0;
@@ -91,7 +102,7 @@
   var remoteStorage = null;
   var remoteReady = false;
   var remoteRetryHandle = null;
-  var remoteQueue = loadRemoteQueue();
+  var pendingRemoteUpdates = loadPendingRemoteUpdates();
   var remoteSyncInProgress = false;
 
   function loadLocalCount() {
@@ -110,7 +121,7 @@
     } catch (e) {}
   }
 
-  function loadRemoteQueue() {
+  function loadPendingRemoteUpdates() {
     if (!isAndroid) return {};
     try {
       var raw = storage.getItem(REMOTE_PENDING_KEY);
@@ -122,13 +133,13 @@
     }
   }
 
-  function persistRemoteQueue() {
+  function persistPendingRemoteUpdates() {
     if (!isAndroid) return;
     try {
-      if (!remoteQueue || Object.keys(remoteQueue).length === 0) {
+      if (!pendingRemoteUpdates || Object.keys(pendingRemoteUpdates).length === 0) {
         storage.removeItem(REMOTE_PENDING_KEY);
       } else {
-        storage.setItem(REMOTE_PENDING_KEY, JSON.stringify(remoteQueue));
+        storage.setItem(REMOTE_PENDING_KEY, JSON.stringify(pendingRemoteUpdates));
       }
     } catch (e) {}
   }
@@ -142,21 +153,21 @@
     if (key === LOCAL_COUNT_KEY && !hasAppliedRemoteBaseline) {
       return;
     }
-    remoteQueue[key] = val;
-    persistRemoteQueue();
-    flushRemoteQueue();
+    pendingRemoteUpdates[key] = val;
+    persistPendingRemoteUpdates();
+    flushPendingRemoteUpdates();
   }
 
-  async function flushRemoteQueue() {
+  async function flushPendingRemoteUpdates() {
     if (!remoteReady || remoteSyncInProgress) return;
-    var keys = Object.keys(remoteQueue);
+    var keys = Object.keys(pendingRemoteUpdates);
     if (keys.length === 0) return;
     remoteSyncInProgress = true;
     var syncedCount = false;
     try {
       for (var i = 0; i < keys.length; i++) {
         var k = keys[i];
-        var value = remoteQueue[k];
+        var value = pendingRemoteUpdates[k];
         try {
           await remoteStorage.setItem(k, value);
           if (k === LOCAL_COUNT_KEY) {
@@ -168,14 +179,15 @@
           throw inner;
         }
       }
-      remoteQueue = {};
-      persistRemoteQueue();
+      pendingRemoteUpdates = {};
+      persistPendingRemoteUpdates();
       if (syncedCount) {
         appendLog('已同步 anki-storage 计数 -> ' + (remoteLastKnownCount !== null ? remoteLastKnownCount : '未知'));
         updateStorageSummary();
       }
     } catch (err) {
       remoteReady = false;
+      appendLog('Anki 计数：远端同步失败 - ' + (err && err.message ? err.message : 'unknown'));
       scheduleRemoteRetry();
     } finally {
       remoteSyncInProgress = false;
@@ -188,12 +200,32 @@
       remoteRetryHandle = null;
       await initRemoteBridge();
     }, 3000);
-    appendLog('anki-storage 不可用，等待重试');
+    appendLog('Anki 计数：连接中断，等待重试');
     updateStorageSummary('等待 anki-storage');
   }
 
+  async function ensureRemoteResetState() {
+    if (!remoteStorage) return;
+    var currentResetKey = getResetKey();
+    try {
+      var remoteResetKey = await remoteStorage.getItem('omt_last_reset');
+      if (!remoteResetKey) {
+        await remoteStorage.setItem('omt_last_reset', currentResetKey);
+        return;
+      }
+      if (remoteResetKey !== currentResetKey) {
+        appendLog('Anki 计数：检测到新一天，重置远端计数');
+        await remoteStorage.setItem('omt_last_reset', currentResetKey);
+        await remoteStorage.setItem(LOCAL_COUNT_KEY, '0');
+        remoteLastKnownCount = 0;
+      }
+    } catch (err) {
+      throw err;
+    }
+  }
+
   async function syncFromRemote() {
-    if (!remoteReady || !remoteStorage) return;
+    if (!remoteStorage) return;
     try {
       var remoteReset = await remoteStorage.getItem('omt_last_reset');
       if (remoteReset) {
@@ -215,8 +247,8 @@
         storage.setItem(REMOTE_BASELINE_KEY, '1');
         hasAppliedRemoteBaseline = true;
         if (currentTotal !== remoteCount) {
-          remoteQueue[LOCAL_COUNT_KEY] = currentTotal.toString();
-          persistRemoteQueue();
+          pendingRemoteUpdates[LOCAL_COUNT_KEY] = currentTotal.toString();
+          persistPendingRemoteUpdates();
         }
         appendLog('接收 anki-storage 基线 ' + remoteCount + '，会话累计 -> ' + currentTotal);
       } else if (remoteCount > currentTotal) {
@@ -227,29 +259,35 @@
       updateStorageSummary('已同步');
     } catch (err) {
       remoteReady = false;
+      appendLog('Anki 计数：远端同步失败 - ' + (err && err.message ? err.message : 'unknown'));
       scheduleRemoteRetry();
     }
   }
 
   async function initRemoteBridge() {
-    if (!isAndroid) return;
+    if (!isAndroid) {
+      appendLog('Anki 计数：非 Android 平台，跳过');
+      return;
+    }
+    appendLog('Anki 计数：开始连接 …');
     var loaded = await waitForAnkiStorage(1500);
     if (!loaded || typeof AnkiStorage === 'undefined') {
-      appendLog('anki-storage 桥接文件未就绪');
+      appendLog('Anki 计数：桥接未就绪，稍后重试');
       scheduleRemoteRetry();
       return;
     }
     try {
       var ankiInstance = await AnkiStorage.getAnkiStorage();
       remoteStorage = ankiInstance.localStorage;
-      remoteReady = true;
-      appendLog('anki-storage 已连接');
+      await ensureRemoteResetState();
       await syncFromRemote();
-      flushRemoteQueue();
+      remoteReady = true;
+      appendLog('Anki 计数：连接成功');
+      flushPendingRemoteUpdates();
       updateStorageSummary();
     } catch (err) {
       remoteReady = false;
-      appendLog('anki-storage 连接失败: ' + (err && err.message ? err.message : 'unknown'));
+      appendLog('Anki 计数：连接失败 - ' + (err && err.message ? err.message : 'unknown'));
       scheduleRemoteRetry();
     }
   }
@@ -272,14 +310,19 @@
     }
   }
 
-  var configStorage = localStorage;
-
   async function getConfig(key, defaultVal) {
-    return configStorage.getItem(key) || defaultVal;
+    try {
+      var val = window.sessionStorage.getItem(key);
+      if (val !== null && typeof val !== 'undefined' && val !== '') {
+        return val;
+      }
+    } catch (e) {}
+    return defaultVal;
   }
 
   updateStorageSummary();
-  appendLog('初始化完成');
+  appendLog('Session 计数初始化 -> ' + currentTotal);
+  appendLog(isAndroid ? 'Anki 计数：等待连接' : 'Anki 计数：不适用');
   var hitMotivation = parseInt(await getConfig('mneme_hit_motivation', '1'), 10);
   var quickHit = JSON.parse(await getConfig('mneme_quick_hit', '[10,1500,50,40]'));
   var comboHit = JSON.parse(await getConfig('mneme_combo_hit', '[50,3000,50,50]'));
@@ -294,10 +337,11 @@
   var comboDuration = comboHit[1];
   var comboPosition = comboHit[2];
   var comboFontSize = comboHit[3] || 50;
+  var motivationEnabled = hitMotivation === 1;
 
-  if (!hitMotivation) return;
-
-  await initRemoteBridge();
+  if (isAndroid) {
+    setTimeout(initRemoteBridge, 0);
+  }
 
   function getRandomText(textArray) {
     if (!Array.isArray(textArray) || textArray.length === 0) {
@@ -425,6 +469,11 @@
     const currentResetKey = getResetKey();
     const lastResetKey = await getValue('omt_last_reset', '');
 
+    if (!lastResetKey) {
+      await setValue('omt_last_reset', currentResetKey);
+      return currentTotal;
+    }
+
     if (currentResetKey !== lastResetKey) {
       await setValue('omt_last_reset', currentResetKey);
       await setCount(0, '每日重置');
@@ -495,11 +544,12 @@
 
     appendLog('Session 计数更新 -> ' + currentCount);
 
-    // Check if combo trigger is activated (higher priority)
-    if (currentCount % comboTrigger === 0) {
-      showCenterPopup(comboHitMessages, true, currentCount);
-    } else if (currentCount % quickTrigger === 0) {
-      showCenterPopup(quickHitMessages, false, currentCount);
+    if (motivationEnabled) {
+      if (currentCount % comboTrigger === 0) {
+        showCenterPopup(comboHitMessages, true, currentCount);
+      } else if (currentCount % quickTrigger === 0) {
+        showCenterPopup(quickHitMessages, false, currentCount);
+      }
     }
   } else {
     const currentCount = await getCount();
