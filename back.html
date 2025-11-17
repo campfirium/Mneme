@@ -1,4 +1,17 @@
 <script>
+(function() {
+  var host = (window.location && window.location.hostname) || '';
+  var isAnkiWeb = /anki(user|web)\.net$/i.test(host);
+  var root = document.documentElement;
+  if (isAnkiWeb && root && !root.classList.contains('ankiweb')) {
+    root.classList.add('ankiweb');
+  }
+  window.mnemeEnv = window.mnemeEnv || {};
+  window.mnemeEnv.isAnkiWeb = isAnkiWeb;
+})();
+</script>
+
+<script>
 // ===== Content Reveal Delay =====
 // Sets how long to wait before showing content (audio × delayFactor)
 // 0 = Show immediately
@@ -26,11 +39,11 @@ var interruptible = 1;
 // 1 = Enabled
 var hitMotivation = 1;
 
-var debugMode = 1;
+var debugMode = 0;
 
 // ===== Hit Settings =====
 // [trigger count, duration ms, vertical position %, font size quick, font size combo]
-var quickHit = [1, 1500, 50, 40];   // Show after 10 hits, 1.5s duration, 50% height, 40px base font
+var quickHit = [10, 1500, 50, 40];   // Show after 10 hits, 1.5s duration, 50% height, 40px base font
 var comboHit = [50, 3000, 50, 50];   // Show after 50 hits, 3s duration, 50% height, 50px base font
 
 // ===== Hit Messages =====
@@ -52,10 +65,28 @@ var comboHitMessages = [
 <div class="box" id="card-box">
   <div class="top-fixed">
     <div class="word" id="animated-word" style="display: flex; justify-content: space-between; align-items: baseline;">
-      <span>{{Word}}&#8203;</span>
-      <span id="debug-counter" style="display:none;"></span>
+      <span class="word-text">{{Word}}&#8203;</span>
+      <span class="word-meta">
+        <button type="button" class="ankiweb-audio-btn word-audio-btn" data-audio-index="0" aria-label="Play word audio">
+          <span class="audio-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M4 9v6h4l5 5V4l-5 5H4zm12.5 3c0-2.07-1.16-3.87-3-4.78v9.56c1.84-.91 3-2.71 3-4.78zm2.5 0c0 3.33-1.77 6.22-4.5 7.73v-2.16c1.4-1.12 2.5-3.1 2.5-5.57s-1.1-4.45-2.5-5.57V4.27c2.73 1.51 4.5 4.4 4.5 7.73z"></path>
+            </svg>
+          </span>
+        </button>
+        <span id="debug-counter" style="display:none;"></span>
+      </span>
     </div>
-    <div class="phonetic">{{IPA}}</div>
+    <div class="phonetic-row">
+      <div class="phonetic">{{IPA}}</div>
+      <button type="button" class="ankiweb-audio-btn example-audio-btn" data-audio-index="1" aria-label="Play example audio">
+        <span class="audio-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M4 9v6h4l5 5V4l-5 5H4zm12.5 3c0-2.07-1.16-3.87-3-4.78v9.56c1.84-.91 3-2.71 3-4.78zm2.5 0c0 3.33-1.77 6.22-4.5 7.73v-2.16c1.4-1.12 2.5-3.1 2.5-5.57s-1.1-4.45-2.5-5.57V4.27c2.73 1.51 4.5 4.4 4.5 7.73z"></path>
+          </svg>
+        </span>
+      </button>
+    </div>
     <hr class="divider progress-bar" id="progress-divider">
   </div>
 
@@ -116,12 +147,17 @@ var comboHitMessages = [
   }
 
   // Detect platform
+  var envInfo = window.mnemeEnv || {};
+  var isAnkiWeb = !!envInfo.isAnkiWeb;
   var ua = navigator.userAgent;
   var isAndroid = /Android/i.test(ua);
 
   var cardBox = document.getElementById('card-box');
   var progressBar = document.getElementById('progress-divider');
   var delayedElements = document.querySelectorAll('.delayed-content');
+  if (isAnkiWeb) {
+    setupAnkiWebAudioButtons();
+  }
 
   if (cardBox) {
     cardBox.classList.add('translation-mode-' + translationMode);
@@ -224,6 +260,46 @@ var comboHitMessages = [
     await setConfig('mneme_combo_hit', JSON.stringify(comboHit));
     await setConfig('mneme_quick_hit_messages', JSON.stringify(quickHitMessages));
     await setConfig('mneme_combo_hit_messages', JSON.stringify(comboHitMessages));
+  }
+
+  function setupAnkiWebAudioButtons() {
+    var soundContainer = document.querySelector('.sound');
+    var buttons = document.querySelectorAll('.ankiweb-audio-btn[data-audio-index]');
+    if (!soundContainer || !buttons.length) return;
+
+    var mediaElements = [];
+    var audios = soundContainer.querySelectorAll('audio');
+    if (audios.length > 0) {
+      mediaElements = Array.prototype.slice.call(audios);
+    } else {
+      var links = soundContainer.querySelectorAll('a');
+      mediaElements = Array.prototype.slice.call(links);
+    }
+
+    Array.prototype.forEach.call(buttons, function(btn) {
+      var index = parseInt(btn.getAttribute('data-audio-index'), 10);
+      var mediaEl = mediaElements[index];
+      if (!mediaEl) {
+        btn.style.display = 'none';
+        return;
+      }
+      btn.addEventListener('click', function() {
+        try {
+          var tagName = mediaEl.tagName ? mediaEl.tagName.toLowerCase() : '';
+          if (tagName === 'audio') {
+            mediaEl.currentTime = 0;
+            var attempt = mediaEl.play();
+            if (attempt && attempt.catch) {
+              attempt.catch(function() {});
+            }
+          } else if (typeof mediaEl.onclick === 'function') {
+            mediaEl.onclick();
+          } else {
+            mediaEl.click();
+          }
+        } catch (err) {}
+      });
+    });
   }
 })();
 </script>

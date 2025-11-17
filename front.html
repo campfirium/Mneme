@@ -1,4 +1,15 @@
-
+<script>
+(function() {
+  var host = (window.location && window.location.hostname) || '';
+  var isAnkiWeb = /anki(user|web)\.net$/i.test(host);
+  var root = document.documentElement;
+  if (isAnkiWeb && root && !root.classList.contains('ankiweb')) {
+    root.classList.add('ankiweb');
+  }
+  window.mnemeEnv = window.mnemeEnv || {};
+  window.mnemeEnv.isAnkiWeb = isAnkiWeb;
+})();
+</script>
 
 <div class="box">
   <div class="top-fixed">

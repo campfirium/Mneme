@@ -84,6 +84,12 @@ body {
   transition: background-color 0.3s ease;
 }
 
+html.ankiweb body {
+  display: block;
+  min-height: auto;
+  padding: 24px 0 32px 0;
+}
+
 /* Desktop Card Styles */
 .box {
   background: var(--box-bg);
@@ -96,6 +102,12 @@ body {
   flex-direction: column;
   padding: 50px 40px;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ankiweb .box {
+  height: auto;
+  min-height: 640px;
+  margin: 32px auto 48px auto;
 }
 
 .top-fixed {
@@ -122,12 +134,77 @@ body {
   opacity: 0;
 }
 
+.word-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phonetic-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ankiweb-audio-btn {
+  display: none;
+}
+
+.ankiweb .ankiweb-audio-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0,0,0,0.08);
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.ankiweb .ankiweb-audio-btn:hover {
+  opacity: 0.85;
+  background: rgba(0,0,0,0.12);
+}
+
+.ankiweb .ankiweb-audio-btn .audio-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.ankiweb .ankiweb-audio-btn .audio-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  display: inline-block;
+}
+
+
+
 .divider {
   background: var(--divider-color);
   height: 1px;
   margin: 16px 0 18px 0;
   border: none;
   transition: background-color 0.3s ease;
+}
+
+.progress-bar {
+  height: 2px;
+  border-radius: 999px;
+  background: #5b5b5b;
+}
+
+.progress-bar.animating {
+  background: #cccccc;
 }
 
 .middle-content {
@@ -309,10 +386,14 @@ details summary::-webkit-details-marker {
   width: 0 !important;
   transition-property: width;
   transition-timing-function: linear;
+  height: 2px;
+  border-radius: 999px;
+  background: #5b5b5b;
 }
 
 .progress-bar.animating {
   width: 100% !important;
+  background: #cccccc;
 }
 
 @media screen and (max-width: 600px) {
@@ -324,6 +405,20 @@ details summary::-webkit-details-marker {
   
   .progress-bar.animating {
     width: 100% !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html.ankiweb body {
+    padding-top: 0;
+  }
+
+  html.ankiweb .box {
+    width: calc(100% - 16px);
+    max-width: none;
+    margin-top: 2px;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
 
