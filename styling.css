@@ -350,7 +350,7 @@ details summary::-webkit-details-marker {
     visibility: hidden;
   }
   10%, 90% {
-    opacity: 1;
+    opacity: var(--motivation-visible-opacity, 1);
     visibility: visible;
   }
 }
