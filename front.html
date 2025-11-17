@@ -19,7 +19,7 @@
     </div>
     <div class="phonetic transparent">{{IPA}}</div>
   </div>
-  <div id="storage-panel" style="margin-top:1.2em;padding:0.6em 0.4em;border-radius:0.6em;background:rgba(0,0,0,0.04);color:var(--text-secondary,#666);font-size:0.75em;line-height:1.4;min-height:3.2em;display:flex;flex-direction:column;gap:0.4em;">
+  <div id="storage-panel" class="storage-panel debug-hidden" style="margin-top:1.2em;padding:0.6em 0.4em;border-radius:0.6em;background:rgba(0,0,0,0.04);color:var(--text-secondary,#666);font-size:0.75em;line-height:1.4;min-height:3.2em;display:flex;flex-direction:column;gap:0.4em;">
     <div id="storage-summary" style="font-weight:600;text-transform:uppercase;letter-spacing:0.05em;"></div>
     <div id="storage-log" style="display:flex;flex-direction:column;gap:0.2em;font-size:0.7em;color:var(--text-secondary,#888);"></div>
   </div>
@@ -72,6 +72,7 @@
   var storageLogEl = document.getElementById('storage-log');
   var logEntries = [];
   var remoteLastKnownCount = null;
+  toggleDebugPanelVisibility();
 
   function updateStorageSummary(note) {
     if (!diagnosticsPanel || !storageSummaryEl) return;
@@ -116,6 +117,27 @@
   var pendingRemoteUpdates = loadPendingRemoteUpdates();
   var remoteSyncInProgress = false;
   var androidSessionFallbackActive = false;
+  function toggleDebugPanelVisibility() {
+    if (!diagnosticsPanel) return;
+    var enabled = readDebugModeFlag();
+    if (enabled) {
+      diagnosticsPanel.classList.remove('debug-hidden');
+    } else {
+      diagnosticsPanel.classList.add('debug-hidden');
+    }
+  }
+  function readDebugModeFlag() {
+    var flag = null;
+    try {
+      flag = storage.getItem('mneme_debug_mode');
+    } catch (e) {}
+    if ((flag === null || flag === undefined) && window.localStorage) {
+      try {
+        flag = window.localStorage.getItem('mneme_debug_mode');
+      } catch (err) {}
+    }
+    return flag === '1';
+  }
 
   function activateAndroidSessionFallback() {
     if (!isAndroid) return;
