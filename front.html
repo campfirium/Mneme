@@ -25,7 +25,7 @@
     if (window.mnemeAnkiStorageLoading) return;
     window.mnemeAnkiStorageLoading = true;
     var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/anki-storage@latest/dist/anki-storage.umd.js';
+    script.src = 'https://campfirium.github.io/Mneme/anki-storage.umd.js';
     script.async = true;
     script.onload = function() { window.ankiStorageLoaded = true; };
     script.onerror = function() { window.ankiStorageLoaded = false; window.mnemeAnkiStorageLoading = false; };
