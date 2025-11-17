@@ -104,6 +104,17 @@
   var remoteRetryHandle = null;
   var pendingRemoteUpdates = loadPendingRemoteUpdates();
   var remoteSyncInProgress = false;
+  var androidSessionFallbackActive = false;
+
+  function activateAndroidSessionFallback() {
+    if (!isAndroid) return;
+    androidSessionFallbackActive = true;
+  }
+
+  function clearAndroidSessionFallback() {
+    if (!isAndroid) return;
+    androidSessionFallbackActive = false;
+  }
 
   function loadLocalCount() {
     var stored = 0;
@@ -196,6 +207,7 @@
 
   function scheduleRemoteRetry() {
     if (!isAndroid || remoteRetryHandle) return;
+    activateAndroidSessionFallback();
     remoteRetryHandle = setTimeout(async function() {
       remoteRetryHandle = null;
       await initRemoteBridge();
@@ -282,6 +294,7 @@
       await ensureRemoteResetState();
       await syncFromRemote();
       remoteReady = true;
+      clearAndroidSessionFallback();
       appendLog('Anki 计数：连接成功');
       flushPendingRemoteUpdates();
       updateStorageSummary();
@@ -370,6 +383,10 @@
     }
   }
 
+  function shouldDimMotivationPopup() {
+    return androidSessionFallbackActive;
+  }
+
   // Center popup display - hierarchical design
   function showCenterPopup(message, isLong = false, count = 1) {
     const popup = document.createElement('div');
@@ -378,6 +395,8 @@
     const position = isLong ? comboPosition : quickPosition;
 
     const parsed = parseMessage(message, count);
+
+    const dimForSessionFallback = shouldDimMotivationPopup();
 
     if (parsed.type === 'single') {
       popup.innerHTML = parsed.content;
@@ -442,6 +461,10 @@
           opacity: 0;
         `;
       }
+    }
+
+    if (dimForSessionFallback) {
+      popup.style.setProperty('--motivation-visible-opacity', '0.5');
     }
 
     document.body.appendChild(popup);
