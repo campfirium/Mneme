@@ -187,6 +187,7 @@
       }
     } catch (err) {
       remoteReady = false;
+      appendLog('Anki 计数：远端同步失败 - ' + (err && err.message ? err.message : 'unknown'));
       scheduleRemoteRetry();
     } finally {
       remoteSyncInProgress = false;
@@ -199,12 +200,32 @@
       remoteRetryHandle = null;
       await initRemoteBridge();
     }, 3000);
-    appendLog('anki-storage 不可用，等待重试');
+    appendLog('Anki 计数：连接中断，等待重试');
     updateStorageSummary('等待 anki-storage');
   }
 
+  async function ensureRemoteResetState() {
+    if (!remoteStorage) return;
+    var currentResetKey = getResetKey();
+    try {
+      var remoteResetKey = await remoteStorage.getItem('omt_last_reset');
+      if (!remoteResetKey) {
+        await remoteStorage.setItem('omt_last_reset', currentResetKey);
+        return;
+      }
+      if (remoteResetKey !== currentResetKey) {
+        appendLog('Anki 计数：检测到新一天，重置远端计数');
+        await remoteStorage.setItem('omt_last_reset', currentResetKey);
+        await remoteStorage.setItem(LOCAL_COUNT_KEY, '0');
+        remoteLastKnownCount = 0;
+      }
+    } catch (err) {
+      throw err;
+    }
+  }
+
   async function syncFromRemote() {
-    if (!remoteReady || !remoteStorage) return;
+    if (!remoteStorage) return;
     try {
       var remoteReset = await remoteStorage.getItem('omt_last_reset');
       if (remoteReset) {
@@ -238,6 +259,7 @@
       updateStorageSummary('已同步');
     } catch (err) {
       remoteReady = false;
+      appendLog('Anki 计数：远端同步失败 - ' + (err && err.message ? err.message : 'unknown'));
       scheduleRemoteRetry();
     }
   }
@@ -257,9 +279,10 @@
     try {
       var ankiInstance = await AnkiStorage.getAnkiStorage();
       remoteStorage = ankiInstance.localStorage;
+      await ensureRemoteResetState();
+      await syncFromRemote();
       remoteReady = true;
       appendLog('Anki 计数：连接成功');
-      await syncFromRemote();
       flushPendingRemoteUpdates();
       updateStorageSummary();
     } catch (err) {
@@ -445,6 +468,11 @@
   async function checkAndResetCount() {
     const currentResetKey = getResetKey();
     const lastResetKey = await getValue('omt_last_reset', '');
+
+    if (!lastResetKey) {
+      await setValue('omt_last_reset', currentResetKey);
+      return currentTotal;
+    }
 
     if (currentResetKey !== lastResetKey) {
       await setValue('omt_last_reset', currentResetKey);
