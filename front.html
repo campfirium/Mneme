@@ -102,7 +102,7 @@
   var remoteStorage = null;
   var remoteReady = false;
   var remoteRetryHandle = null;
-  var remoteQueue = loadRemoteQueue();
+  var pendingRemoteUpdates = loadPendingRemoteUpdates();
   var remoteSyncInProgress = false;
 
   function loadLocalCount() {
@@ -121,7 +121,7 @@
     } catch (e) {}
   }
 
-  function loadRemoteQueue() {
+  function loadPendingRemoteUpdates() {
     if (!isAndroid) return {};
     try {
       var raw = storage.getItem(REMOTE_PENDING_KEY);
@@ -133,13 +133,13 @@
     }
   }
 
-  function persistRemoteQueue() {
+  function persistPendingRemoteUpdates() {
     if (!isAndroid) return;
     try {
-      if (!remoteQueue || Object.keys(remoteQueue).length === 0) {
+      if (!pendingRemoteUpdates || Object.keys(pendingRemoteUpdates).length === 0) {
         storage.removeItem(REMOTE_PENDING_KEY);
       } else {
-        storage.setItem(REMOTE_PENDING_KEY, JSON.stringify(remoteQueue));
+        storage.setItem(REMOTE_PENDING_KEY, JSON.stringify(pendingRemoteUpdates));
       }
     } catch (e) {}
   }
@@ -153,21 +153,21 @@
     if (key === LOCAL_COUNT_KEY && !hasAppliedRemoteBaseline) {
       return;
     }
-    remoteQueue[key] = val;
-    persistRemoteQueue();
-    flushRemoteQueue();
+    pendingRemoteUpdates[key] = val;
+    persistPendingRemoteUpdates();
+    flushPendingRemoteUpdates();
   }
 
-  async function flushRemoteQueue() {
+  async function flushPendingRemoteUpdates() {
     if (!remoteReady || remoteSyncInProgress) return;
-    var keys = Object.keys(remoteQueue);
+    var keys = Object.keys(pendingRemoteUpdates);
     if (keys.length === 0) return;
     remoteSyncInProgress = true;
     var syncedCount = false;
     try {
       for (var i = 0; i < keys.length; i++) {
         var k = keys[i];
-        var value = remoteQueue[k];
+        var value = pendingRemoteUpdates[k];
         try {
           await remoteStorage.setItem(k, value);
           if (k === LOCAL_COUNT_KEY) {
@@ -179,8 +179,8 @@
           throw inner;
         }
       }
-      remoteQueue = {};
-      persistRemoteQueue();
+      pendingRemoteUpdates = {};
+      persistPendingRemoteUpdates();
       if (syncedCount) {
         appendLog('已同步 anki-storage 计数 -> ' + (remoteLastKnownCount !== null ? remoteLastKnownCount : '未知'));
         updateStorageSummary();
@@ -226,8 +226,8 @@
         storage.setItem(REMOTE_BASELINE_KEY, '1');
         hasAppliedRemoteBaseline = true;
         if (currentTotal !== remoteCount) {
-          remoteQueue[LOCAL_COUNT_KEY] = currentTotal.toString();
-          persistRemoteQueue();
+          pendingRemoteUpdates[LOCAL_COUNT_KEY] = currentTotal.toString();
+          persistPendingRemoteUpdates();
         }
         appendLog('接收 anki-storage 基线 ' + remoteCount + '，会话累计 -> ' + currentTotal);
       } else if (remoteCount > currentTotal) {
@@ -260,7 +260,7 @@
       remoteReady = true;
       appendLog('Anki 计数：连接成功');
       await syncFromRemote();
-      flushRemoteQueue();
+      flushPendingRemoteUpdates();
       updateStorageSummary();
     } catch (err) {
       remoteReady = false;
