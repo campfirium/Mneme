@@ -1,0 +1,305 @@
+<script>
+(function() {
+  var host = (window.location && window.location.hostname) || '';
+  var isAnkiWeb = /anki(user|web)\.net$/i.test(host);
+  var root = document.documentElement;
+  if (isAnkiWeb && root && !root.classList.contains('ankiweb')) {
+    root.classList.add('ankiweb');
+  }
+  window.mnemeEnv = window.mnemeEnv || {};
+  window.mnemeEnv.isAnkiWeb = isAnkiWeb;
+})();
+</script>
+
+<script>
+// ===== Content Reveal Delay =====
+// Sets how long to wait before showing content (audio × delayFactor)
+// 0 = Show immediately
+// 1 = Wait full audio duration
+// <1 = Shorter delay
+// >1 = Longer delay
+var delayFactor = 1;
+
+// ===== Translation Display =====
+// Controls which translation language is shown.
+// 0 = No translation
+// 1 = Chinese translation
+// 2 = (reserved) — more languages to be added
+var translationMode = 1;
+
+// ===== Interruptible Delay =====
+// Controls whether the delay can be interrupted by clicking
+// 0 = Cannot interrupt
+// 1 = Can interrupt by clicking center area
+var interruptible = 1;
+
+// ===== Hit Motivation =====
+// Shows encouraging messages when user clicks "Again" repeatedly
+// 0 = Disabled
+// 1 = Enabled
+var hitMotivation = 1;
+
+var debugMode = 0;
+
+// ===== Hit Settings =====
+// [trigger count, duration ms, vertical position %, font size quick, font size combo]
+var quickHit = [10, 1500, 50, 40];   // Show after 10 hits, 1.5s duration, 50% height, 40px base font
+var comboHit = [50, 3000, 50, 50];   // Show after 50 hits, 3s duration, 50% height, 50px base font
+
+// ===== Hit Messages =====
+// Custom messages shown at intervals, randomly selected. Use "|" to separate subtitle and title
+var quickHitMessages = [
+  "NICE|{count}",
+  "GOOD|{count}",
+  "KEEP GOING|{count}"
+];
+var comboHitMessages = [
+  "GREAT|{count}",
+  "EXCELLENT|{count}",
+  "AMAZING|{count}",
+  "PERFECT|{count}"
+];
+
+</script>
+
+<div class="box" id="card-box">
+  <div class="top-fixed">
+    <div class="word" id="animated-word" style="display: flex; justify-content: space-between; align-items: baseline;">
+      <span class="word-text">{{Word}}&#8203;</span>
+      <span class="word-meta">
+        <button type="button" class="ankiweb-audio-btn word-audio-btn" data-audio-index="0" aria-label="Play word audio">
+          <span class="audio-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M4 9v6h4l5 5V4l-5 5H4zm12.5 3c0-2.07-1.16-3.87-3-4.78v9.56c1.84-.91 3-2.71 3-4.78zm2.5 0c0 3.33-1.77 6.22-4.5 7.73v-2.16c1.4-1.12 2.5-3.1 2.5-5.57s-1.1-4.45-2.5-5.57V4.27c2.73 1.51 4.5 4.4 4.5 7.73z"></path>
+            </svg>
+          </span>
+        </button>
+        <span id="debug-counter" style="display:none;"></span>
+      </span>
+    </div>
+    <div class="phonetic-row">
+      <div class="phonetic">{{IPA}}</div>
+      <button type="button" class="ankiweb-audio-btn example-audio-btn" data-audio-index="1" aria-label="Play example audio">
+        <span class="audio-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M4 9v6h4l5 5V4l-5 5H4zm12.5 3c0-2.07-1.16-3.87-3-4.78v9.56c1.84-.91 3-2.71 3-4.78zm2.5 0c0 3.33-1.77 6.22-4.5 7.73v-2.16c1.4-1.12 2.5-3.1 2.5-5.57s-1.1-4.45-2.5-5.57V4.27c2.73 1.51 4.5 4.4 4.5 7.73z"></path>
+          </svg>
+        </span>
+      </button>
+    </div>
+    <hr class="divider progress-bar" id="progress-divider">
+  </div>
+
+  <div class="middle-content delayed-content">
+    <div class="example">
+      <div class="static-text">{{Example}}</div>
+      <details class="translation-zh">
+        <summary>{{Example}}</summary>
+        <div class="translation">{{ExampleZH}}</div>
+      </details>
+    </div>
+    <div class="definition">
+      <div class="static-text">{{Meaning}}</div>
+      <details class="translation-zh">
+        <summary>{{Meaning}}</summary>
+        <div class="translation">{{MeaningZH}}</div>
+      </details>
+    </div>
+  </div>
+  <div class="image-container delayed-content">
+    {{Image}}
+  </div>
+  <div class="sound">{{Sound}} {{Sound_Example}}</div>
+</div>
+
+
+
+<script>
+(async function() {
+  function sleep(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+  }
+
+  function ensureAnkiStorageBridge() {
+    if (window.mnemeAnkiStorageLoading) return;
+    window.mnemeAnkiStorageLoading = true;
+    var script = document.createElement('script');
+    script.src = 'https://campfirium.github.io/Mneme/anki-storage.umd.js';
+    script.async = true;
+    script.onload = function() { window.ankiStorageLoaded = true; };
+    script.onerror = function() { window.ankiStorageLoaded = false; window.mnemeAnkiStorageLoading = false; };
+    document.head.appendChild(script);
+  }
+
+  ensureAnkiStorageBridge();
+
+  async function waitForAnkiStorage(timeoutMs) {
+    var elapsed = 0;
+    var interval = 100;
+    while (elapsed < timeoutMs) {
+      if (window.ankiStorageLoaded === true || typeof AnkiStorage !== 'undefined') {
+        return true;
+      }
+      await sleep(interval);
+      elapsed += interval;
+    }
+    return window.ankiStorageLoaded === true || typeof AnkiStorage !== 'undefined';
+  }
+
+  // Detect platform
+  var envInfo = window.mnemeEnv || {};
+  var isAnkiWeb = !!envInfo.isAnkiWeb;
+  var ua = navigator.userAgent;
+  var isAndroid = /Android/i.test(ua);
+
+  var cardBox = document.getElementById('card-box');
+  var progressBar = document.getElementById('progress-divider');
+  var delayedElements = document.querySelectorAll('.delayed-content');
+  if (isAnkiWeb) {
+    setupAnkiWebAudioButtons();
+  }
+
+  if (cardBox) {
+    cardBox.classList.add('translation-mode-' + translationMode);
+    if (interruptible === 1) {
+      cardBox.classList.add('interruptible-mode');
+    }
+  }
+
+  var soundDurText = '{{Sound_Dur}}';
+  var soundExampleDurText = '{{Sound_Example_Dur}}';
+  var soundDur = parseFloat(soundDurText) || 0;
+  var soundExampleDur = parseFloat(soundExampleDurText) || 0;
+  var totalDelay = (soundDur + soundExampleDur) * delayFactor;
+  var animationDuration = totalDelay > 0 ? totalDelay : 3;
+  var contentTimeout;
+  var isRevealed = false;
+
+  function revealContent() {
+    if (isRevealed) return;
+    isRevealed = true;
+    
+    if (progressBar) progressBar.classList.add('animating');
+    delayedElements.forEach(function(el) { el.classList.add('is-visible'); });
+    
+    if (contentTimeout) {
+      clearTimeout(contentTimeout);
+      contentTimeout = null;
+    }
+  }
+
+  function handleClick(event) {
+    if (!cardBox) return;
+    if (interruptible === 1 && !isRevealed) {
+      var rect = cardBox.getBoundingClientRect();
+      var centerX = rect.left + rect.width / 2;
+      var centerY = rect.top + rect.height / 2;
+      var clickX = event.clientX;
+      var clickY = event.clientY;
+      
+      var centerWidth = rect.width * 0.5;
+      var centerHeight = rect.height * 0.5;
+      
+      if (Math.abs(clickX - centerX) <= centerWidth / 2 && 
+          Math.abs(clickY - centerY) <= centerHeight / 2) {
+        revealContent();
+      }
+    }
+  }
+
+  if (interruptible === 1 && cardBox) {
+    cardBox.addEventListener('click', handleClick);
+    cardBox.addEventListener('touchend', handleClick);
+  }
+
+  if (delayFactor === 0) {
+    revealContent();
+  } else {
+    if (progressBar) {
+      progressBar.style.transitionDuration = animationDuration + 's';
+      
+      setTimeout(function() {
+        if (!isRevealed) {
+          progressBar.classList.add('animating');
+        }
+      }, 20);
+    }
+
+    var contentDelay = animationDuration * 1000;
+    
+    contentTimeout = setTimeout(function() {
+      revealContent();
+    }, contentDelay);
+  }
+
+  initializeConfig();
+
+  async function initializeConfig() {
+    if (isAndroid) {
+      await waitForAnkiStorage(2000);
+    }
+
+    // Store template configuration in sessionStorage so front/back share the same values
+    var configStorage = window.sessionStorage;
+    if (!configStorage) {
+      configStorage = localStorage;
+    }
+
+    // Helper to set config (handles both sync and async)
+    async function setConfig(key, val) {
+      try {
+        await configStorage.setItem(key, val);
+      } catch (e) {
+        configStorage.setItem(key, val);
+      }
+    }
+
+    await setConfig('mneme_hit_motivation', hitMotivation.toString());
+    await setConfig('mneme_debug_mode', debugMode.toString());
+    await setConfig('mneme_quick_hit', JSON.stringify(quickHit));
+    await setConfig('mneme_combo_hit', JSON.stringify(comboHit));
+    await setConfig('mneme_quick_hit_messages', JSON.stringify(quickHitMessages));
+    await setConfig('mneme_combo_hit_messages', JSON.stringify(comboHitMessages));
+  }
+
+  function setupAnkiWebAudioButtons() {
+    var soundContainer = document.querySelector('.sound');
+    var buttons = document.querySelectorAll('.ankiweb-audio-btn[data-audio-index]');
+    if (!soundContainer || !buttons.length) return;
+
+    var mediaElements = [];
+    var audios = soundContainer.querySelectorAll('audio');
+    if (audios.length > 0) {
+      mediaElements = Array.prototype.slice.call(audios);
+    } else {
+      var links = soundContainer.querySelectorAll('a');
+      mediaElements = Array.prototype.slice.call(links);
+    }
+
+    Array.prototype.forEach.call(buttons, function(btn) {
+      var index = parseInt(btn.getAttribute('data-audio-index'), 10);
+      var mediaEl = mediaElements[index];
+      if (!mediaEl) {
+        btn.style.display = 'none';
+        return;
+      }
+      btn.addEventListener('click', function() {
+        try {
+          var tagName = mediaEl.tagName ? mediaEl.tagName.toLowerCase() : '';
+          if (tagName === 'audio') {
+            mediaEl.currentTime = 0;
+            var attempt = mediaEl.play();
+            if (attempt && attempt.catch) {
+              attempt.catch(function() {});
+            }
+          } else if (typeof mediaEl.onclick === 'function') {
+            mediaEl.onclick();
+          } else {
+            mediaEl.click();
+          }
+        } catch (err) {}
+      });
+    });
+  }
+})();
+</script>

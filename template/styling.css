@@ -1,0 +1,502 @@
+/*
+ * -----------------------------------------------------------------
+ *  Anki Card Template: Mneme
+ *  Version: 0.2
+ *  Author: Rommer
+ *  Created: 2025-06-21
+ *  Last Updated: 2025-07-31
+ *
+ *  Description:
+ *  An Anki template built for immersion and audio-first learning, 
+ *  with a clean and thoughtful visual design
+ *
+ *  Contact & Feedback:
+ *  - GitHub: https://github.com/campfirium/Mneme
+ *  - Forum: https://campfirium.info/t/mneme-an-anki-template/593/
+ *
+ *  License: CC-BY-SA 4.0
+ * -----------------------------------------------------------------
+ */
+
+@font-face {
+  font-family: 'Noto Sans';
+  src:
+    local('Noto Sans'),
+    local('Noto Sans Regular'),
+    url('NotoSans-VariableFont_wdth,wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+/* Theme Variables */
+:root {
+  --box-bg: #fff;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --divider-color: #f0f0f0;
+  --box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1.5px 6px rgba(0,0,0,0.08);
+}
+
+html {
+  font-size: 62.5%;
+}
+
+.word { font-size: 4.8rem; }
+.phonetic { font-size: 3.2rem; }
+.example { font-size: 2.2rem; }
+.definition { font-size: 1.8rem; }
+
+/* Dark Theme */
+.night_mode, .card.night_mode {
+  --box-bg: #2d2d2d;
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0;
+  --divider-color: #404040;
+  --box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+}
+
+@media (max-width: 600px) {
+  .night_mode, .card.night_mode {
+    --box-bg: #2d2d2d;
+    --text-primary: #f0f0f0;
+    --text-secondary: #c0c0c0;
+    --divider-color: #707070;
+    --box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  }
+  .word { font-size: 10vw; }
+  .phonetic { font-size: 9vw; }
+  .example { font-size: 6vw; }
+  .definition { font-size: 5vw; }
+}
+
+/* Base Layout */
+body {
+  background: var(--page-bg, inherit);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.6rem;
+  margin: 0;
+  transition: background-color 0.3s ease;
+}
+
+html.ankiweb body {
+  display: block;
+  min-height: auto;
+  padding: 24px 0 32px 0;
+}
+
+.storage-panel.debug-hidden {
+  display: none !important;
+}
+
+/* Desktop Card Styles */
+.box {
+  background: var(--box-bg);
+  box-shadow: var(--box-shadow);
+  width: 480px;
+  height: 640px; 
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 50px 40px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ankiweb .box {
+  height: auto;
+  min-height: 640px;
+  margin: 32px auto 48px auto;
+}
+
+.top-fixed {
+  flex-shrink: 0;
+}
+
+.word {
+  color: var(--text-primary);
+  font-weight: bold;
+  margin-bottom: 12px;
+  line-height: 1.2;
+  transition: color 0.3s ease;
+}
+
+.phonetic {
+  color: var(--text-secondary);
+  font-family: 'Noto Sans', sans-serif;
+  margin-bottom: 6px;
+  font-weight: 400;
+  transition: color 0.3s ease;
+}
+
+.phonetic.transparent {
+  opacity: 0;
+}
+
+.word-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phonetic-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ankiweb-audio-btn {
+  display: none;
+}
+
+.ankiweb .ankiweb-audio-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0,0,0,0.08);
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.ankiweb .ankiweb-audio-btn:hover {
+  opacity: 0.85;
+  background: rgba(0,0,0,0.12);
+}
+
+.ankiweb .ankiweb-audio-btn .audio-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.ankiweb .ankiweb-audio-btn .audio-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  display: inline-block;
+}
+
+
+
+.divider {
+  background: var(--divider-color);
+  height: 1px;
+  margin: 16px 0 18px 0;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.middle-content {
+  overflow: hidden; 
+  min-height: 0;
+}
+
+.example {
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  line-height: 1.6;
+  transition: color 0.3s ease;
+}
+
+.definition {
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 0;
+  transition: color 0.3s ease;
+}
+
+/* Translation Control System */
+details {
+  display: none;
+}
+
+.static-text {
+  display: block;
+}
+
+.translation-mode-0 .static-text {
+  display: block;
+}
+.translation-mode-0 details {
+  display: none;
+}
+
+.translation-mode-1 .static-text {
+  display: none;
+}
+.translation-mode-1 .translation-zh {
+  display: block;
+}
+
+details summary {
+  cursor: pointer;
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+.example details summary {
+  color: var(--text-primary);
+  font-size: 2.2rem;
+  line-height: 1.6;
+  margin-bottom: 0;
+  transition: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.definition details summary {
+  color: var(--text-secondary);
+  font-size: 1.8rem;
+  line-height: 1.5;
+  margin-bottom: 0;
+  transition: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+@media (max-width: 600px) {
+  .example details summary {
+    font-size: 6vw;
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
+  }
+  
+  .definition details summary {
+    font-size: 5vw;
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
+  }
+  
+  /* Add click restrictions for collapsible areas on mobile */
+  .example details,
+  .definition details {
+    position: relative;
+  }
+  
+  .example details::after,
+  .definition details::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 20%;
+    height: 100%;
+    background: transparent;
+    z-index: 2;
+    pointer-events: auto;
+  }
+}
+
+.image-container {
+  flex: 1;
+  margin-top: 30px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100px; 
+}
+
+.image-container img {
+  width: 100%;
+  height: auto;
+
+  border-radius: 4px;
+  display: block;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 600px) {
+  body {
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    min-height: 0 !important;
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    height: 100vh;
+    box-sizing: border-box;
+    padding: 10vh 24px 5vh 24px;
+  }
+
+  .box {
+    width: 100%;
+    height: 100%;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .image-container {
+    min-height: 120px;
+    border-radius: 8px;
+  }
+  .image-container img {
+    border-radius: 8px;
+  }
+
+  .divider{
+   width: calc(100vw - 128px) !important; 
+  }
+}
+
+.sound {height:0px !important;opacity:0}
+
+.word {
+  opacity: 1;
+}
+
+.phonetic {
+  opacity: 1;
+}
+
+.progress-bar {
+  width: 0 !important;
+  transition-property: width;
+  transition-timing-function: linear;
+}
+
+.progress-bar.animating {
+  width: 100% !important;
+}
+
+html.ankiweb .progress-bar {
+  height: 2px;
+  border-radius: 999px;
+  background: #5b5b5b;
+}
+
+html.ankiweb .progress-bar.animating {
+  background: #cccccc;
+}
+
+@media screen and (max-width: 600px) {
+  .progress-bar {
+    width: 0 !important;
+    transition-property: width !important;
+    transition-timing-function: linear !important;
+  }
+  
+  .progress-bar.animating {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html.ankiweb body {
+    padding-top: 0;
+  }
+
+  html.ankiweb .box {
+    width: calc(100% - 16px);
+    max-width: none;
+    margin-top: 2px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+.delayed-content {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+
+.delayed-content.is-visible {
+  opacity: 1;
+}
+
+.translation-mode-0 .translation-zh {
+  display: none !important;
+}
+.translation-mode-1 .translation-zh {
+  display: block;
+}
+
+/* OneMoreTurn motivation animations */
+@keyframes containerFadeInOut {
+  0%, 100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+  10%, 90% {
+    opacity: var(--motivation-visible-opacity, 1);
+    visibility: visible;
+  }
+}
+
+@keyframes subtitleAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes titleAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile interaction styles */
+.box {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.box.interruptible-mode {
+  cursor: pointer;
+}
+
+/* Text selection for content areas */
+.example, .definition,
+.static-text, .translation,
+details, summary,
+details > summary,
+.translation-zh {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+summary {
+  cursor: text;
+}
+
+summary::-webkit-details-marker {
+  cursor: pointer;
+}

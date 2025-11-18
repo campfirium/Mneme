@@ -4,7 +4,7 @@ An Anki template built for immersion and audio-first learning, with a clean and 
 
 ## Preview
 
-[![Click to watch the demo](assets/preview.gif)](https://youtu.be/Kw9BcWWMs0Qo)
+[![Click to watch the demo](docs/preview.gif)](https://youtu.be/vMWwqlI1h3k)
 
 *Click the animation above to watch the full demo on YouTube.*
 
@@ -30,7 +30,10 @@ An Anki template built for immersion and audio-first learning, with a clean and 
 
 ### **Progress & Motivation**
 
--   **Milestone Notifications:** Receive clean, encouraging pop-ups at key milestones to help build rhythm and a sense of achievement (the counter resets daily at 4 AM).
+-   **Milestone Notifications:** Receive clean, encouraging pop-ups at key milestones to help build rhythm and a sense of achievement. Due to platform limitations, counter persistence varies:
+    -   **Android (AnkiDroid):** Counter persists across app restarts and resets daily at 4 AM
+    -   **Desktop (Windows/Mac/Linux):** Counter persists while Anki is running, resets when you close the app
+    -   **iOS (AnkiMobile):** Counter persists during your study session, resets when you exit to the main deck screen
 -   **Template-Based Customization:** Easily edit the motivational messages and trigger frequency directly within the card template code.
 
 
