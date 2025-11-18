@@ -7,3 +7,5 @@ notes/
 # OS junk
 .DS_Store
 Thumbs.db
+.config/config.json
+.vscode/tasks.json
