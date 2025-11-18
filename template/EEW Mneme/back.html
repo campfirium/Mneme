@@ -149,8 +149,11 @@ var comboHitMessages = [
   // Detect platform
   var envInfo = window.mnemeEnv || {};
   var isAnkiWeb = !!envInfo.isAnkiWeb;
-  var ua = navigator.userAgent;
+  var ua = navigator.userAgent || '';
   var isAndroid = /Android/i.test(ua);
+  // NQ Web 环境：这里等同于 AnkiWeb（基于 hostname 的精确匹配）
+  // 只在这个环境里启用「第二次翻面点击整张卡片」的特殊流程
+  var isNqWeb = isAnkiWeb;
 
   var cardBox = document.getElementById('card-box');
   var progressBar = document.getElementById('progress-divider');
@@ -174,6 +177,7 @@ var comboHitMessages = [
   var animationDuration = totalDelay > 0 ? totalDelay : 3;
   var contentTimeout;
   var isRevealed = false;
+  var nqFlowStarted = false;
 
   function revealContent() {
     if (isRevealed) return;
@@ -207,14 +211,19 @@ var comboHitMessages = [
     }
   }
 
-  if (interruptible === 1 && cardBox) {
-    cardBox.addEventListener('click', handleClick);
-    cardBox.addEventListener('touchend', handleClick);
-  }
+  function startProgressAndDelay() {
+    if (delayFactor === 0) {
+      // Immediate reveal without progress animation (keep legacy behavior)
+      if (isRevealed) return;
+      isRevealed = true;
+      delayedElements.forEach(function(el) { el.classList.add('is-visible'); });
+      if (contentTimeout) {
+        clearTimeout(contentTimeout);
+        contentTimeout = null;
+      }
+      return;
+    }
 
-  if (delayFactor === 0) {
-    revealContent();
-  } else {
     if (progressBar) {
       progressBar.style.transitionDuration = animationDuration + 's';
       
@@ -230,6 +239,79 @@ var comboHitMessages = [
     contentTimeout = setTimeout(function() {
       revealContent();
     }, contentDelay);
+  }
+
+  function triggerMediaByIndex(index) {
+    var soundContainer = document.querySelector('.sound');
+    if (!soundContainer) return;
+
+    var mediaElements = [];
+    var audios = soundContainer.querySelectorAll('audio');
+    if (audios.length > 0) {
+      mediaElements = Array.prototype.slice.call(audios);
+    } else {
+      var links = soundContainer.querySelectorAll('a');
+      mediaElements = Array.prototype.slice.call(links);
+    }
+
+    var mediaEl = mediaElements[index];
+    if (!mediaEl) return;
+
+    try {
+      var tagName = mediaEl.tagName ? mediaEl.tagName.toLowerCase() : '';
+      if (tagName === 'audio') {
+        mediaEl.currentTime = 0;
+        var attempt = mediaEl.play();
+        if (attempt && attempt.catch) {
+          attempt.catch(function() {});
+        }
+      } else if (typeof mediaEl.onclick === 'function') {
+        mediaEl.onclick();
+      } else {
+        mediaEl.click();
+      }
+    } catch (err) {}
+  }
+
+  function startNqFlow() {
+    if (nqFlowStarted) return;
+    nqFlowStarted = true;
+
+    startProgressAndDelay();
+
+    // Play word audio, then example audio
+    triggerMediaByIndex(0);
+    var exampleDelay = soundDur > 0 ? soundDur * 1000 : 400;
+    setTimeout(function() {
+      triggerMediaByIndex(1);
+    }, exampleDelay);
+  }
+
+  if (cardBox) {
+    if (isNqWeb) {
+      // NQ Web:
+      // - First tap anywhere starts the flow (progress + audio)
+      // - Subsequent taps (while interruptible and not revealed) immediately reveal content
+      cardBox.addEventListener('click', function() {
+        if (!nqFlowStarted) {
+          startNqFlow();
+          return;
+        }
+        if (interruptible === 1 && !isRevealed) {
+          revealContent();
+        }
+      });
+    } else if (interruptible === 1) {
+      // Other platforms keep the original center-click-to-reveal behavior
+      cardBox.addEventListener('click', handleClick);
+      cardBox.addEventListener('touchend', handleClick);
+    }
+  }
+
+  // Default behavior: auto-start progress and delayed content
+  // NQ Web waits for explicit user tap instead.
+  if (!isNqWeb) {
+    startProgressAndDelay();
   }
 
   initializeConfig();
