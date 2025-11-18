@@ -4,7 +4,7 @@ An Anki template built for immersion and audio-first learning, with a clean and 
 
 ## Preview
 
-[![Click to watch the demo](assets/preview.gif)](https://youtu.be/Kw9BcWWMs0Qo)
+[![Click to watch the demo](docs/preview.gif)](https://youtu.be/vMWwqlI1h3k)
 
 *Click the animation above to watch the full demo on YouTube.*
 

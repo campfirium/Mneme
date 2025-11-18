@@ -1,8 +1,9 @@
-*
-!back.html
-!front.html
-!styling.css
-!README.md
-!.gitignore
-!assets/
-!assets/preview.gif
+# Node / tooling
+node_modules/
+
+# Local notes (internal use only)
+notes/
+
+# OS junk
+.DS_Store
+Thumbs.db
