@@ -1,10 +1,10 @@
 /*
  * -----------------------------------------------------------------
  *  Anki Card Template: Mneme
- *  Version: 0.4.1
+ *  Version: 0.4.2
  *  Author: Rommer
  *  Created: 2025-06-21
- *  Last Updated: 2025-11-18
+ *  Last Updated: 2025-11-19
  *
  *  Description:
  *  An Anki template built for immersion and audio-first learning, 
@@ -19,11 +19,8 @@
  */
 
 @font-face {
-  font-family: 'Noto Sans';
-  src:
-    local('Noto Sans'),
-    local('Noto Sans Regular'),
-    url('NotoSans-VariableFont_wdth,wght.ttf') format('truetype');
+  font-family: 'NotoSansIPA';
+  src: url('_NotoSansIPA.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -128,7 +125,7 @@ html.ankiweb body {
 
 .phonetic {
   color: var(--text-secondary);
-  font-family: 'Noto Sans', sans-serif;
+  font-family: 'NotoSansIPA', sans-serif;
   margin-bottom: 6px;
   font-weight: 400;
   transition: color 0.3s ease;
